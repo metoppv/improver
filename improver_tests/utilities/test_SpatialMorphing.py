@@ -604,12 +604,94 @@ def test_find_active_transition_depends_on_available_source_names(
     )
 
 
-def test_find_active_transition_error_mentions_expected_transition_source_pair():
-    """Test the error message identifies the active transition it was trying to match."""
+@pytest.mark.parametrize(
+    "start_minutes,end_minutes",
+    [
+        (168, 180),
+        (60, 120),
+    ],
+)
+def test_find_active_transition_returns_none_for_no_op_cases(
+    start_minutes, end_minutes
+):
+    """Transitions should return None when the period is inactive or unusable.
+
+    This covers the two distinct cases that are intentionally treated as
+    "skip-morphing" behaviour within ``_find_active_transition``:
+
+    * the requested forecast period is outside any configured transition window, so
+      there is no active transition at all; or
+    * a transition window is active, but neither source in the configured pair is
+      present in the supplied input set, so there is no valid morphing partner to
+      apply.
+
+    In both situations the function should return ``None`` rather than raise an
+    exception, because the caller can then keep the current source and skip the
+    morphing step without incorrectly treating a missing transition as a hard
+    configuration error.
+    """
     plugin = SpatialMorphing(
         forecast_period=10800,
         cluster_number=17,
         transitions={
+            "transitions": [
+                {
+                    "source_a": "gl_ens",
+                    "source_b": "ecgl_ens",
+                    "start_forecast_period_minutes": start_minutes,
+                    "end_forecast_period_minutes": end_minutes,
+                }
+            ]
+        },
+    )
+
+    assert (
+        plugin._find_active_transition(
+            10800,
+            "ecgl_ens",
+            available_source_names={"uk_det"},
+        )
+        is None
+    )
+
+
+def test_find_active_transition_returns_none_when_multiple_active_windows_are_unusable():
+    """Multiple active transitions should skip morphing when none are usable."""
+    plugin = SpatialMorphing(
+        forecast_period=10800,
+        cluster_number=17,
+        transitions={
+            "transitions": [
+                {
+                    "source_a": "gl_ens",
+                    "source_b": "ecgl_ens",
+                    "start_forecast_period_minutes": 60,
+                    "end_forecast_period_minutes": 180,
+                },
+                {
+                    "source_a": "uk_ens",
+                    "source_b": "ecgl_ens",
+                    "start_forecast_period_minutes": 60,
+                    "end_forecast_period_minutes": 180,
+                },
+            ]
+        },
+    )
+
+    assert (
+        plugin._find_active_transition(
+            10800,
+            "ecgl_ens",
+            available_source_names={"uk_det"},
+        )
+        is None
+    )
+
+
+@pytest.mark.parametrize(
+    "transitions",
+    [
+        {
             "transitions": [
                 {
                     "source_a": "nc_det uk_det",
@@ -625,17 +707,42 @@ def test_find_active_transition_error_mentions_expected_transition_source_pair()
                 },
             ]
         },
+        {
+            "transitions": [
+                {
+                    "source_a": "gl_ens",
+                    "source_b": "ecgl_ens",
+                    "start_forecast_period_minutes": 60,
+                    "end_forecast_period_minutes": 180,
+                },
+                {
+                    "source_a": "uk_ens",
+                    "source_b": "ecgl_ens",
+                    "start_forecast_period_minutes": 60,
+                    "end_forecast_period_minutes": 180,
+                },
+            ]
+        },
+    ],
+)
+def test_find_active_transition_returns_none_when_active_window_has_no_usable_partner(
+    transitions,
+):
+    """An active transition should be skipped when none of its source pairs are usable."""
+    plugin = SpatialMorphing(
+        forecast_period=10800,
+        cluster_number=17,
+        transitions=transitions,
     )
 
-    with pytest.raises(
-        ValueError,
-        match="expected transition from 'nc_det uk_det' to 'uk_ens'",
-    ):
+    assert (
         plugin._find_active_transition(
             10800,
             "uk_ens",
             available_source_names={"uk_det"},
         )
+        is None
+    )
 
 
 def test_process_raises_on_ambiguous_transition_selection():
@@ -814,6 +921,161 @@ def test_process_falls_back_to_available_source_when_requested_model_missing():
 
     assert result.coord("realization").points.tolist() == [17]
     np.testing.assert_allclose(result.data, 200.0 + 11, rtol=1e-6)
+
+
+@pytest.mark.parametrize(
+    "transitions",
+    [
+        {
+            "transitions": [
+                {
+                    "source_a": "gl_ens",
+                    "source_b": "ecgl_ens",
+                    "start_forecast_period_minutes": 168,
+                    "end_forecast_period_minutes": 180,
+                }
+            ]
+        },
+        {
+            "transitions": [
+                {
+                    "source_a": "gl_ens",
+                    "source_b": "ecgl_ens",
+                    "start_forecast_period_minutes": 60,
+                    "end_forecast_period_minutes": 180,
+                },
+                {
+                    "source_a": "uk_ens",
+                    "source_b": "ecgl_ens",
+                    "start_forecast_period_minutes": 60,
+                    "end_forecast_period_minutes": 180,
+                },
+            ]
+        },
+    ],
+)
+def test_process_skips_morphing_when_no_transition_is_usable(transitions):
+    """Skip morphing when the active transition pair is unusable.
+
+    Concrete example: the transition window says ``A -> B`` is active, but the
+    cluster metadata and available inputs do not actually include ``A`` or ``B``.
+    In that case there is no usable transition partner for this run, so the
+    method should skip morphing and keep the already selected source (for example
+    ``C``) rather than raising an error. This is distinct from a genuine
+    ambiguity, where multiple valid transitions remain and we still raise an error. The
+    result stays at the original source value: ``50 + 0`` because the input cube
+    is built with a base value of 50 and the selected realization is 0.
+    """
+    cluster_cube = set_up_variable_cube(
+        np.zeros((5, 5), dtype=np.float32),
+        name="clustering_result",
+        units="1",
+        spatial_grid="equalarea",
+    )
+    cluster_cube.attributes["primary_input_realization_to_cluster_medoid"] = json.dumps(
+        {"17": 0}
+    )
+    cluster_cube.attributes["secondary_input_realizations_to_clusters"] = json.dumps(
+        {
+            "uk_det": {"17": [{"realization": 0, "forecast_periods": [3600, 21600]}]},
+        }
+    )
+    # The cluster metadata only lists uk_det as available for this cluster. The
+    # configured transition(s) reference other source names, so no transition pair
+    # is actually usable here.
+    cluster_cube.attributes["cluster_sources"] = json.dumps(
+        {"17": {"uk_det": [3600, 21600]}}
+    )
+
+    plugin = SpatialMorphing(
+        forecast_period=10800,
+        cluster_number=17,
+        transitions=transitions,
+    )
+    # The configured transition(s) are active at this forecast period, but the
+    # pair they reference is not present in the available inputs. The expected
+    # behavior is to skip morphing and keep the selected source.
+    det_cube = make_forecast_cube(model_id="uk_det", n_realizations=2, base_value=50.0)
+
+    result = plugin.process(det_cube, cluster_cube)
+
+    assert result.coord("realization").points.tolist() == [17]
+    # The selected source is still uk_det and its realization index is 0, so the
+    # value remains the original 50 + 0.
+    np.testing.assert_allclose(result.data, 50.0 + 0, rtol=1e-6)
+
+
+def test_process_keeps_fallback_source_when_transition_pair_is_absent():
+    """Keep the valid fallback source when the transition pair is present in metadata
+    but not supplied.
+
+    This is distinct from the previous test: here the cluster metadata explicitly
+    lists ``uk_det``, ``uk_ens`` and ``ecgl_ens`` as valid sources for the cluster,
+    and the active transition window is ``uk_det -> uk_ens``. The key difference is
+    that the plugin input only contains ``ecgl_ens``. In this case we should keep
+    the supplied fallback source rather than attempting morphing against the
+    unavailable pair. The expected value is ``300 + 12`` because the ``ecgl_ens``
+    cube is built with a base value of 300 and the selected realization for this
+    cluster is 12.
+    """
+    cluster_cube = set_up_variable_cube(
+        np.zeros((5, 5), dtype=np.float32),
+        name="clustering_result",
+        units="1",
+        spatial_grid="equalarea",
+    )
+    cluster_cube.attributes["primary_input_realization_to_cluster_medoid"] = json.dumps(
+        {"17": 8}
+    )
+    cluster_cube.attributes["secondary_input_realizations_to_clusters"] = json.dumps(
+        {
+            "uk_det": {"17": [{"realization": 3, "forecast_periods": [3600, 21600]}]},
+            "uk_ens": {"17": [{"realization": 11, "forecast_periods": [3600, 21600]}]},
+            "ecgl_ens": {
+                "17": [{"realization": 12, "forecast_periods": [3600, 21600]}]
+            },
+        }
+    )
+    # The cluster metadata explicitly contains the transition sources; the
+    # distinction is that the plugin is only given ecgl_ens as an input, so the
+    # uk_det -> uk_ens pair itself is not usable for this run.
+    cluster_cube.attributes["cluster_sources"] = json.dumps(
+        {
+            "17": {
+                "uk_det": [3600, 21600],
+                "uk_ens": [3600, 21600],
+                "ecgl_ens": [3600, 21600],
+            }
+        }
+    )
+
+    plugin = SpatialMorphing(
+        forecast_period=10800,
+        cluster_number=17,
+        transitions={
+            "transitions": [
+                {
+                    "source_a": "uk_det",
+                    "source_b": "uk_ens",
+                    "start_forecast_period_minutes": 60,
+                    "end_forecast_period_minutes": 180,
+                }
+            ]
+        },
+    )
+    # The active transition is defined as uk_det -> uk_ens, but the plugin input
+    # only contains ecgl_ens, so the fallback source must be retained instead of
+    # trying to morph between the unavailable transition pair.
+    ecgl_ens_cube = make_forecast_cube(
+        model_id="ecgl_ens", n_realizations=24, base_value=300.0
+    )
+
+    result = plugin.process(ecgl_ens_cube, cluster_cube)
+
+    assert result.coord("realization").points.tolist() == [17]
+    # The chosen fallback source is ecgl_ens and the realization assigned for this
+    # cluster is 12, so the value is 300 + 12.
+    np.testing.assert_allclose(result.data, 300.0 + 12, rtol=1e-6)
 
 
 def test_process_falls_back_when_requested_realization_is_missing_from_available_source():
