@@ -955,7 +955,15 @@ def test_process_falls_back_to_available_source_when_requested_model_missing():
     ],
 )
 def test_process_skips_morphing_when_no_transition_is_usable(transitions):
-    """The public process() path should keep the selected source when no active transition is usable."""
+    """Keep the selected source when no active transition can actually be used.
+
+    This covers the case where a transition window is active, but the configured
+    source pair is not available on the supplied forecast cubes. In that
+    situation, the method should skip morphing and retain the current source rather
+    than raising an error. The result therefore stays at the original source value,
+    which is ``50 + 0`` here because the input cube is built with a base value of
+    50 and the selected realization is 0.
+    """
     cluster_cube = set_up_variable_cube(
         np.zeros((5, 5), dtype=np.float32),
         name="clustering_result",
@@ -979,12 +987,85 @@ def test_process_skips_morphing_when_no_transition_is_usable(transitions):
         cluster_number=17,
         transitions=transitions,
     )
+    # The configured transition(s) are active at this forecast period, but the
+    # source pair they reference is not present in the available inputs. The
+    # expected behavior is to skip morphing and keep the selected source.
     det_cube = make_forecast_cube(model_id="uk_det", n_realizations=2, base_value=50.0)
 
     result = plugin.process(det_cube, cluster_cube)
 
     assert result.coord("realization").points.tolist() == [17]
+    # The selected source is still uk_det and its realization index is 0, so the
+    # value remains the original 50 + 0.
     np.testing.assert_allclose(result.data, 50.0 + 0, rtol=1e-6)
+
+
+def test_process_keeps_fallback_source_when_transition_pair_is_absent():
+    """Keep the already valid fallback source when the active transition pair is absent.
+
+    This mimics the case where a transition window is active for ``uk_det ->
+    uk_ens`` at T+3 to T+5, but neither of those inputs is present on the forecast
+    cubes. Instead, ``ecgl_ens`` is the available source for cluster 17 and should be
+    kept without attempting morphing. The expected data value is ``300 + 12``
+    because ``make_forecast_cube`` adds the realization index to the base value; the
+    cluster metadata assigns realization 12 to ``ecgl_ens`` for this cluster.
+    """
+    cluster_cube = set_up_variable_cube(
+        np.zeros((5, 5), dtype=np.float32),
+        name="clustering_result",
+        units="1",
+        spatial_grid="equalarea",
+    )
+    cluster_cube.attributes["primary_input_realization_to_cluster_medoid"] = json.dumps(
+        {"17": 8}
+    )
+    cluster_cube.attributes["secondary_input_realizations_to_clusters"] = json.dumps(
+        {
+            "uk_det": {"17": [{"realization": 3, "forecast_periods": [3600, 21600]}]},
+            "uk_ens": {"17": [{"realization": 11, "forecast_periods": [3600, 21600]}]},
+            "ecgl_ens": {
+                "17": [{"realization": 12, "forecast_periods": [3600, 21600]}]
+            },
+        }
+    )
+    cluster_cube.attributes["cluster_sources"] = json.dumps(
+        {
+            "17": {
+                "uk_det": [3600, 21600],
+                "uk_ens": [3600, 21600],
+                "ecgl_ens": [3600, 21600],
+            }
+        }
+    )
+
+    plugin = SpatialMorphing(
+        forecast_period=10800,
+        cluster_number=17,
+        transitions={
+            "transitions": [
+                {
+                    "source_a": "uk_det",
+                    "source_b": "uk_ens",
+                    "start_forecast_period_minutes": 60,
+                    "end_forecast_period_minutes": 180,
+                }
+            ]
+        },
+    )
+    # The active transition is defined in terms of uk_det -> uk_ens, but the
+    # only available forecast source for this cluster is ecgl_ens. Since neither
+    # leg of the transition pair is present, morphing should be skipped and the
+    # fallback source retained.
+    ecgl_ens_cube = make_forecast_cube(
+        model_id="ecgl_ens", n_realizations=24, base_value=300.0
+    )
+
+    result = plugin.process(ecgl_ens_cube, cluster_cube)
+
+    assert result.coord("realization").points.tolist() == [17]
+    # ``make_forecast_cube`` uses base_value + realization_index, so a cube with
+    # realization 12 produces values around 300 + 12.
+    np.testing.assert_allclose(result.data, 300.0 + 12, rtol=1e-6)
 
 
 def test_process_falls_back_when_requested_realization_is_missing_from_available_source():

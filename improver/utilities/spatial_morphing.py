@@ -616,7 +616,11 @@ class SpatialMorphing(BasePlugin):
         If multiple transitions are active at the same forecast period, the selected
         source name is used to choose between them. If available source names are
         supplied, the active transition is further constrained to those whose
-        origin source is present on the input forecast cubes.
+        source pair is actually usable with the input forecast cubes. In particular,
+        if an active transition window exists but neither source in the defining
+        source pair is available in the supplied inputs, this method returns None so
+        the caller can skip morphing and retain the already selected source without
+        raising an exception.
 
         Args:
             forecast_period: The forecast period (in seconds) to check for active
@@ -628,10 +632,29 @@ class SpatialMorphing(BasePlugin):
         Returns:
             The active transition dictionary if found, otherwise None.
 
+        Examples:
+            - No active transition window covers the forecast period: returns None.
+            - A transition ``A -> B`` is active, but neither ``A`` nor ``B`` is
+              present in ``available_source_names``: returns None so the caller can
+              skip morphing and keep the selected source.
+            - A transition ``A -> B`` is active and both ``A`` and ``B`` are
+              available: returns that transition so morphing can proceed.
+            - Multiple transition windows are active and ``selected_source_name`` is
+              provided: choose the matching transition from the active set if it is
+              compatible with the available source list. For example, if both
+              ``A -> B`` and ``A -> C`` are active and only ``B`` is available,
+              the method selects ``A -> B``.
+            - Multiple active transitions remain compatible after filtering: raise
+              ValueError because the configuration is ambiguous and cannot be
+              resolved without more information. For example, if both ``A -> B``
+              and ``A -> C`` are active and both ``B`` and ``C`` are available, the
+              method cannot choose between them.
+
         Raises:
-            ValueError: If multiple transitions match the forecast period and
-                selected_source_name is not provided, or if no matching transition
-                is found.
+            ValueError: If overlapping active transitions require a selected source
+                name to disambiguate them, or if a selected source is involved in an
+                active transition window but no compatible transition can be resolved
+                after filtering against the available input sources.
         """
         active_transitions = [
             transition
@@ -660,9 +683,9 @@ class SpatialMorphing(BasePlugin):
                 for source_name in (transition["source_a"], transition["source_b"])
             ):
                 return transition
-            # Active window exists, but neither source in the pair is available in
-            # the supplied inputs: skip the transition and preserve the current
-            # source selection.
+            # Example: an ``A -> B`` transition is active, but neither ``A`` nor
+            # ``B`` is available in the supplied inputs. Skip the transition and
+            # preserve the current source selection rather than raising an error.
             return None
 
         if selected_source_name is None:
@@ -681,11 +704,11 @@ class SpatialMorphing(BasePlugin):
             return transition
 
         if available_source_names is not None:
-            # If every active transition involving the selected source is unusable
-            # with the supplied inputs, skip morphing for this period rather than
-            # raising a hard failure. The caller can keep the already selected
-            # source without masking genuine ambiguity when a usable overlapping
-            # transition does exist.
+            # Example: both ``A -> B`` and ``A -> C`` are active, but neither
+            # ``B`` nor ``C`` is available in the supplied inputs. In that case,
+            # skip morphing for this period rather than raising a hard failure;
+            # the caller can keep the already selected source without masking a
+            # genuine ambiguity when a usable overlapping transition does exist.
             any_usable_transition = any(
                 selected_source_name in {trans["source_a"], trans["source_b"]}
                 and any(
