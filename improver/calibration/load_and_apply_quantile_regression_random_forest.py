@@ -88,7 +88,7 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
             max_allowed_difference (float, optional):
                 The maximum allowed difference between the uncalibrated and calibrated
                 forecast. If not provided, no maximum difference check will be applied.
-                If provided, must be a non-negative integer. Defaults to None.
+                If provided, must be a non-negative float. Defaults to None.
         """
         self.feature_config = feature_config
         self.target_cf_name = target_cf_name

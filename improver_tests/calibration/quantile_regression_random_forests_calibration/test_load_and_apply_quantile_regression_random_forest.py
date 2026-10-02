@@ -426,7 +426,13 @@ def test_mismatching_temporal_coordinates(
 def test_max_allowed_difference(quantiles, max_allowed_difference, expected):
     """Test the PrepareAndApplyQRF plugin with a maximum allowed difference between
     the uncalibrated and calibrated forecast. If the difference exceeds this value,
-    the calibrated forecast is clipped to be within this value of the uncalibrated."""
+    the calibrated forecast is clipped to be within this value of the uncalibrated.
+
+    The uncalibrated forecasts are manually created such that each contains two sites
+    and the selected quantiles. The 50th percentile (0.5) uncalibrated forecast is
+    [6.0, 8.0] and the 33rd and 66th percentiles (1/3, 2/3) are [6.0, 8.0] and
+    [12.0, 14.0] respectively.
+    """
 
     feature_config = {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]}
     n_estimators = 2
