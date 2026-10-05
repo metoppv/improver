@@ -1,0 +1,145 @@
+name: PR Coverage Comment
+
+# workflow_run fires after CI Tests completes and runs with base-repo write
+# permissions regardless of whether the originating PR comes from a fork.
+# This is the recommended approach for posting PR comments on fork PRs,
+# as pull_request_target fires before tests have run (no artifact yet).
+on:
+  workflow_run:
+    workflows: ["CI Tests"]
+    types: [completed]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  comment-coverage:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.event == 'pull_request'
+    steps:
+
+      - name: Find open PR for this workflow run
+        id: find-pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const headSha = context.payload.workflow_run.head_sha;
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const pr = prs.find(p => p.head.sha === headSha);
+            if (!pr) {
+              core.warning('No open PR found for head SHA: ' + headSha);
+              return;
+            }
+            core.setOutput('pr-number', String(pr.number));
+
+      - name: Find coverage artifact from CI run
+        id: find-artifact
+        if: steps.find-pr.outputs.pr-number
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const expectedName = `coverage-report-${{ steps.find-pr.outputs.pr-number }}`;
+            const { data: { artifacts } } = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.payload.workflow_run.id,
+            });
+            const art = artifacts.find(a => a.name === expectedName);
+            if (art) {
+              core.setOutput('found', 'true');
+              core.setOutput('artifact-id', String(art.id));
+            } else {
+              core.setOutput('found', 'false');
+            }
+
+      # If a previous push to this PR had reduced coverage but the latest push
+      # has fixed it, remove the now-stale warning comment.
+      - name: Delete stale coverage comment
+        if: steps.find-pr.outputs.pr-number && steps.find-artifact.outputs.found == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = parseInt('${{ steps.find-pr.outputs.pr-number }}');
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+            });
+            const stale = comments.find(c => c.body.includes('<!-- coverage-reduced-comment -->'));
+            if (stale) {
+              await github.rest.issues.deleteComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: stale.id,
+              });
+              console.log('Deleted stale coverage comment');
+            }
+
+      - name: Download coverage artifact
+        if: steps.find-artifact.outputs.found == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const response = await github.rest.actions.downloadArtifact({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              artifact_id: parseInt('${{ steps.find-artifact.outputs.artifact-id }}'),
+              archive_format: 'zip',
+            });
+            require('fs').writeFileSync('coverage-artifact.zip', Buffer.from(response.data));
+
+      - name: Extract coverage_summary.md from artifact
+        if: steps.find-artifact.outputs.found == 'true'
+        run: unzip coverage-artifact.zip coverage_summary.md
+
+      - name: Post or update PR coverage comment
+        if: steps.find-artifact.outputs.found == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const prNumber = parseInt('${{ steps.find-pr.outputs.pr-number }}');
+
+            const summary = fs.readFileSync('coverage_summary.md', 'utf8').trim();
+
+            const runUrl = context.payload.workflow_run.html_url;
+            const body = [
+              '<!-- coverage-reduced-comment -->',
+              '## :warning: Code Coverage Reduced',
+              '',
+              summary,
+              '',
+              `<sub>Reported for CI run: [${context.payload.workflow_run.id}](${runUrl})</sub>`,
+            ].join('\n');
+
+            // Update existing comment if present, otherwise create a new one
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+            });
+            const existing = comments.find(c => c.body.includes('<!-- coverage-reduced-comment -->'));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+              console.log('Updated existing coverage comment');
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body,
+              });
+              console.log('Created new coverage comment');
+            }
