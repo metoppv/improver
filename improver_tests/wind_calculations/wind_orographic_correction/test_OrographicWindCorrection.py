@@ -228,6 +228,20 @@ def test_process_checks_all_required_horizontal_grids():
         plugin.process(wind)
 
 
+def test_process_rejects_wind_profiles_that_do_not_reach_300m(
+    standard_wind_profile_cube,
+):
+    """Process should require the profile to extend to at least 300 m."""
+    plugin = _make_plugin()
+    short_profile = _make_wind_profile_cube(
+        heights=np.array([10.0, 20.0, 50.0], dtype=np.float32),
+        values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
+    )
+
+    with pytest.raises(ValueError, match="at least 300 m"):
+        plugin.process(short_profile)
+
+
 def test_process_converts_ancillary_orography_units_before_use():
     """Process should normalise orography-related ancillaries to metres in place."""
     shape = (2, 2)
@@ -353,6 +367,8 @@ def test_process_combines_target_winds_with_speed_up_factor(monkeypatch):
     )
 
     def _fake_speed_up_factor(*_args, **_kwargs):
+        """Return a fixed speed-up factor so the process-level multiplication can be
+        asserted."""
         return mocked_speed_up
 
     monkeypatch.setattr(
@@ -466,6 +482,7 @@ def test_get_target_wind_speeds_returns_direct_copy_when_heights_match(monkeypat
     )
 
     def _raise_if_called(*_args, **_kwargs):
+        """Fail if a spline fit is attempted when target heights already match."""
         raise AssertionError(
             "Spline fitting should not be called for matching heights."
         )
@@ -518,6 +535,7 @@ def test_get_target_wind_speeds_reuses_supplied_spline_when_present(monkeypatch)
     )
 
     def _raise_if_called(*_args, **_kwargs):
+        """Fail if a spline is refitted when the requested heights already match."""
         raise AssertionError("fit_spline_wind_profile should not be called.")
 
     monkeypatch.setattr(
@@ -535,6 +553,8 @@ def test_get_target_wind_speeds_reuses_supplied_spline_when_present(monkeypatch)
     )
 
     class _FakeSpline:
+        """Simple spline used to verify that a supplied interpolator is reused."""
+
         def __call__(self, heights):
             np.testing.assert_allclose(
                 heights, np.array([15.0, 25.0], dtype=np.float32)
@@ -704,11 +724,17 @@ def test_get_height_levels_from_cube_converts_coordinate_units():
         heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
         values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
     )
-    wind.coord("height").convert_units("km")
+    height_coord = wind.coord("height").copy()
+    assert str(height_coord.units) == "m"
+    height_coord.convert_units("km")
+    assert str(height_coord.units) == "km"
 
     result = wind_orographic_correction.get_height_levels_from_cube(wind)
+    height_coord = wind.coord("height").copy()
+    height_coord.convert_units("m")
 
-    np.testing.assert_allclose(result, np.array([10.0, 20.0, 30.0], dtype=np.float32))
+    np.testing.assert_allclose(result, height_coord.points)
+    assert str(height_coord.units) == "m"
 
 
 def test_get_height_levels_from_cube_returns_1d_array():
@@ -725,7 +751,16 @@ def test_get_height_levels_from_cube_returns_1d_array():
     np.testing.assert_allclose(result, np.array([10.0], dtype=np.float32))
 
 
-def test_fit_spline_wind_profile_rejects_non_increasing_heights(monkeypatch):
+@pytest.mark.parametrize(
+    "bad_heights",
+    [
+        np.array([10.0, 10.0, 30.0], dtype=float),
+        np.array([30.0, 20.0, 10.0], dtype=float),
+    ],
+)
+def test_fit_spline_wind_profile_rejects_non_increasing_heights(
+    monkeypatch, bad_heights
+):
     """Spline fitting should reject repeated or decreasing height levels."""
     wind = _make_wind_profile_cube(
         heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
@@ -735,14 +770,22 @@ def test_fit_spline_wind_profile_rejects_non_increasing_heights(monkeypatch):
     monkeypatch.setattr(
         wind_orographic_correction,
         "get_height_levels_from_cube",
-        lambda _cube: np.array([10.0, 10.0, 30.0], dtype=float),
+        lambda _cube: bad_heights,
     )
 
     with pytest.raises(ValueError, match="strictly increasing"):
         wind_orographic_correction.fit_spline_wind_profile(wind)
 
 
-def test_fit_spline_wind_profile_rejects_non_finite_heights(monkeypatch):
+@pytest.mark.parametrize(
+    "bad_heights",
+    [
+        np.array([10.0, np.nan, 30.0], dtype=float),
+        np.array([10.0, np.inf, 30.0], dtype=float),
+        np.array([10.0, -np.inf, 30.0], dtype=float),
+    ],
+)
+def test_fit_spline_wind_profile_rejects_non_finite_heights(monkeypatch, bad_heights):
     """Spline fitting should reject NaN or infinite height values."""
     wind = _make_wind_profile_cube(
         heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
@@ -752,7 +795,7 @@ def test_fit_spline_wind_profile_rejects_non_finite_heights(monkeypatch):
     monkeypatch.setattr(
         wind_orographic_correction,
         "get_height_levels_from_cube",
-        lambda _cube: np.array([10.0, np.nan, 30.0], dtype=float),
+        lambda _cube: bad_heights,
     )
 
     with pytest.raises(ValueError, match="must all be finite"):
@@ -777,7 +820,12 @@ def test_fit_spline_wind_profile_rejects_shape_mismatch(monkeypatch):
 
 
 def test_evaluate_spline_at_reference_heights_masks_out_of_range_points():
-    """Out-of-range reference heights should be masked in the output."""
+    """Only heights outside the fitted spline range should be masked.
+
+    Here, 15.0 m is inside the interpolated [10.0, 30.0] range and should stay
+    valid; 35.0 m is above the highest fitted level and should be masked; 20.0 m
+    is already masked in the input data and should remain masked.
+    """
     wind = _make_wind_profile_cube(
         heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
         values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
@@ -789,6 +837,8 @@ def test_evaluate_spline_at_reference_heights_masks_out_of_range_points():
         "reference_height",
         "m",
     )
+    # The 15.0 m point is in range, 35.0 m is above the fitted profile, and
+    # 20.0 m is already masked before evaluating the spline.
     reference_height_cube.data = np.ma.array(
         reference_height_cube.data,
         mask=np.array([[False, False], [False, True]]),
@@ -799,6 +849,9 @@ def test_evaluate_spline_at_reference_heights_masks_out_of_range_points():
         reference_height_cube,
     )
 
+    # The new mask should only add the out-of-range 35.0 m point; the existing
+    # mask at 20.0 m should be preserved, while the valid 15.0 m point stays
+    # unmasked.
     np.testing.assert_array_equal(
         np.ma.getmaskarray(result),
         np.array([[True, False], [True, True]]),
@@ -856,6 +909,7 @@ def test_evaluate_spline_at_reference_heights_handles_top_boundary():
 
 
 def _make_speed_up_inputs():
+    """Return a standard set of inputs for testing the speed-up-factor calculation."""
     return {
         "characteristic_wavenumber": np.full((2, 2), 0.01, dtype=float),
         "unresolved_orography_height": np.full((2, 2), 20.0, dtype=float),
@@ -872,7 +926,9 @@ def test_broadcast_2d_to_3d_adds_height_axis():
 
     result = wind_orographic_correction._broadcast_2d_to_3d(array_2d)
 
-    assert result.shape == (1, 2, 2)
+    assert result.ndim == 3
+    assert result.shape[0] == 1
+    assert result.shape[1:] == (2, 2)
     np.testing.assert_allclose(result[0], array_2d)
 
 
@@ -1007,6 +1063,7 @@ def test_calculate_speed_up_factor_clips_fractional_perturbation(monkeypatch):
     inputs = _make_speed_up_inputs()
 
     def _huge_response(roughness_scaled_wavenumber_3d, *_args):
+        """Return a deliberately extreme response to exercise the clipping path."""
         return np.full_like(roughness_scaled_wavenumber_3d, 1.0e6, dtype=float)
 
     monkeypatch.setattr(
@@ -1037,6 +1094,7 @@ def test_calculate_speed_up_factor_applies_vertical_decay(monkeypatch):
     inputs = _make_speed_up_inputs()
 
     def _unit_response(roughness_scaled_wavenumber_3d, *_args):
+        """Return a neutral response so the height dependence is isolated."""
         return np.ones_like(roughness_scaled_wavenumber_3d, dtype=float)
 
     monkeypatch.setattr(
@@ -1055,6 +1113,7 @@ def test_calculate_speed_up_factor_supports_realization_dimension(monkeypatch):
     inputs = _make_speed_up_inputs()
 
     def _unit_response(roughness_scaled_wavenumber_3d, *_args):
+        """Return a neutral response so the realization dimension can be isolated."""
         return np.ones_like(roughness_scaled_wavenumber_3d, dtype=float)
 
     monkeypatch.setattr(
@@ -1089,6 +1148,7 @@ def test_calculate_speed_up_factor_masks_non_positive_target_winds(monkeypatch):
     inputs = _make_speed_up_inputs()
 
     def _unit_response(roughness_scaled_wavenumber_3d, *_args):
+        """Return a neutral response so the masking behavior is isolated."""
         return np.ones_like(roughness_scaled_wavenumber_3d, dtype=float)
 
     monkeypatch.setattr(
@@ -1122,6 +1182,7 @@ def test_calculate_speed_up_factor_handles_masked_target_winds(monkeypatch):
     inputs = _make_speed_up_inputs()
 
     def _unit_response(roughness_scaled_wavenumber_3d, *_args):
+        """Return a neutral response so the masked-wind path is tested in isolation."""
         return np.ones_like(roughness_scaled_wavenumber_3d, dtype=float)
 
     monkeypatch.setattr(
@@ -1187,6 +1248,7 @@ def test_calculate_speed_up_factor_sets_unity_for_invalid_ancillary_points(
     inputs = _make_speed_up_inputs()
 
     def _unit_response(roughness_scaled_wavenumber_3d, *_args):
+        """Return a neutral response so the invalid-ancillary path is isolated."""
         return np.ones_like(roughness_scaled_wavenumber_3d, dtype=float)
 
     monkeypatch.setattr(
@@ -1341,6 +1403,7 @@ def test_refine_roughness_length_runs_golden_section_search(monkeypatch):
         min_friction_velocity,
         max_friction_velocity,
     ):
+        """Return a simple quadratic error surface to test the refinement loop."""
         call_count["n"] += 1
         friction_velocity = np.ones_like(roughness_length, dtype=float)
         squared_error = (roughness_length - 0.2) ** 2
@@ -1449,6 +1512,7 @@ def test_fit_log_wind_profile_applies_height_limits(monkeypatch):
         min_roughness_length,
         max_roughness_length,
     ):
+        """Record the fitted heights and return the configured roughness bounds."""
         captured["fit_heights"] = fit_heights.copy()
         return (
             np.full(valid_count.shape, min_roughness_length, dtype=float),
@@ -1536,6 +1600,7 @@ def test_calculate_unresolved_orography_height_converts_units():
         model_orog,
     )
 
+    assert str(result.units) == "m"
     np.testing.assert_allclose(result.data, np.full((2, 2), 20.0, dtype=np.float32))
 
 
@@ -1610,7 +1675,17 @@ def test_calculate_reference_height_sets_expected_metadata():
 
 
 def test_calculate_characteristic_wavenumber_applies_input_thresholds():
-    """Characteristic wavenumber should only be calculated for valid inputs."""
+    """Only physically valid terrain inputs should contribute to the wavenumber.
+
+    The roughness is required to be positive; the standard deviation must be
+    finite and the resulting length scale must satisfy the configured bounds.
+
+    Here the first column is masked because the roughness is 1.0 but the
+    standard deviation is too small to produce a valid conversion after the
+    lower/upper clipping limits are applied. The second column remains valid,
+    and the masked pattern is checked explicitly before comparing the two
+    finite values that should be returned in the unmasked cells.
+    """
     orog_stddev_cube = _make_xy_cube(
         np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32),
         "standard_deviation_of_height_in_grid_cell",
@@ -1627,9 +1702,22 @@ def test_calculate_characteristic_wavenumber_applies_input_thresholds():
         silhouette_roughness_cube,
     )
 
+    # The validity mask is checking the conditions used by the calculation:
+    # - sigma must be at least 2.0 m, so (0, 0) is invalid
+    # - silhouette roughness must be positive, so (1, 0) is invalid
+    # - the remaining two points are valid and should be returned as finite
+    #   values after the inverse-length-scale clipping is applied.
     expected_mask = np.array([[True, False], [True, False]])
     np.testing.assert_array_equal(np.ma.getmaskarray(result.data), expected_mask)
+    assert np.ma.is_masked(result.data[0, 0])
+    assert np.ma.is_masked(result.data[1, 0])
+    assert np.isfinite(result.data[0, 1])
+    assert np.isfinite(result.data[1, 1])
 
+    # The valid cells correspond to the formula
+    #   k = pi * clip(r / max(sqrt(2) * sigma, 1), 1/4000, 1/500)
+    # with sigma=2, roughness=1 at (0, 1), and sigma=4, roughness=0.5 at
+    # (1, 1). These are the only entries that should remain finite.
     expected_valid_01 = np.pi * np.clip(
         1.0 / max(np.sqrt(2.0) * 2.0, 1.0),
         1.0 / 4000.0,
@@ -1699,14 +1787,14 @@ def test_calculate_characteristic_wavenumber_masks_invalid_points():
 
 
 def test_check_same_grid_allows_single_cube():
-    """A single cube should not trigger a grid comparison failure."""
+    """A single cube should be treated as a no-op and return cleanly."""
     cube = _make_xy_cube(
         np.full((2, 2), 1.0, dtype=np.float32),
         "surface_altitude",
         "m",
     )
 
-    wind_orographic_correction.check_same_grid(cube)
+    assert wind_orographic_correction.check_same_grid(cube) is None
 
 
 def test_check_same_grid_allows_matching_horizontal_shapes():

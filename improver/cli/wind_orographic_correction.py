@@ -29,8 +29,9 @@ def process(
     Args:
         wind_profile_cube:
             Wind-speed cube containing the profile to fit and the field to
-            correct. It should include wind speeds at heights between ground
-            level and 300 m.
+            correct. It should include wind speeds from 0 to (at least) 300 m
+            above ground level, as these heights are used for the logarithmic
+            profile used to estimate the effective surface roughness.
 
         high_res_orog_cube:
             High-resolution orography cube.
@@ -47,7 +48,10 @@ def process(
         target_height_levels:
             Comma-separated list of target heights above ground level, in
             metres. If omitted, the correction is applied at the heights
-            already present on ``wind_profile_cube``.
+            already present on ``wind_profile_cube``. Values may be supplied as
+            a comma-separated string, a Python list, or the literal ``None``;
+            these are converted to a list of floating-point heights before the
+            plugin is called.
 
     Returns:
         iris.cube.Cube:
