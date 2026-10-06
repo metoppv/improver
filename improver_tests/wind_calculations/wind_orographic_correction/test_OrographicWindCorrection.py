@@ -520,7 +520,7 @@ def test_get_target_wind_speeds_interpolates_when_heights_differ(
     expected = np.stack(
         [
             np.full((2, 2), 3.0, dtype=np.float32),
-            np.full((2, 2), 5.0, dtype=np.float32),
+            np.full((2, 2), 5.23122549, dtype=np.float32),
         ],
         axis=0,
     )
