@@ -107,12 +107,12 @@ def _make_plugin(
 
 @pytest.fixture
 def standard_heights() -> np.ndarray:
-    return np.array([10.0, 20.0, 30.0], dtype=np.float32)
+    return np.array([10.0, 20.0, 30.0, 400.0], dtype=np.float32)
 
 
 @pytest.fixture
 def standard_profile_values() -> np.ndarray:
-    return np.array([2.0, 4.0, 6.0], dtype=np.float32)
+    return np.array([2.0, 4.0, 6.0, 8.0], dtype=np.float32)
 
 
 @pytest.fixture
@@ -204,7 +204,7 @@ def test_process_returns_corrected_cube_on_explicit_heights(
     expected = np.stack(
         [
             np.full(shape, 3.0, dtype=np.float32),
-            np.full(shape, 5.0, dtype=np.float32),
+            np.full(shape, 5.23122549, dtype=np.float32),
         ],
         axis=0,
     )
@@ -219,8 +219,8 @@ def test_process_checks_all_required_horizontal_grids():
     """Process should reject ancillary cubes that do not share the wind grid."""
     plugin = _make_plugin(shape=(2, 2))
     wind = _make_wind_profile_cube(
-        heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
-        values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
+        heights=np.array([10.0, 20.0, 30.0, 400.0], dtype=np.float32),
+        values_at_heights=np.array([2.0, 4.0, 6.0, 8.0], dtype=np.float32),
         shape=(3, 2),
     )
 
@@ -273,8 +273,8 @@ def test_process_converts_ancillary_orography_units_before_use():
         model_silhouette_roughness_cube=silhouette_roughness,
     )
     wind = _make_wind_profile_cube(
-        heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
-        values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
+        heights=np.array([10.0, 20.0, 30.0, 400.0], dtype=np.float32),
+        values_at_heights=np.array([2.0, 4.0, 6.0, 8.0], dtype=np.float32),
     )
 
     assert str(plugin.high_res_orog_cube.units) == "km"
@@ -306,8 +306,8 @@ def test_process_preserves_masked_target_winds_in_output(
 ):
     """Masked target winds should remain masked in the corrected output."""
     wind = _make_wind_profile_cube(
-        heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
-        values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
+        heights=np.array([10.0, 20.0, 30.0, 400.0], dtype=np.float32),
+        values_at_heights=np.array([2.0, 4.0, 6.0, 8.0], dtype=np.float32),
     )
 
     masked_target_winds = np.ma.array(
@@ -354,8 +354,8 @@ def test_process_combines_target_winds_with_speed_up_factor(monkeypatch):
         model_orog_value=100.0,
     )
     wind = _make_wind_profile_cube(
-        heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
-        values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
+        heights=np.array([10.0, 20.0, 30.0, 400.0], dtype=np.float32),
+        values_at_heights=np.array([2.0, 4.0, 6.0, 8.0], dtype=np.float32),
     )
 
     mocked_speed_up = np.array(
@@ -382,7 +382,7 @@ def test_process_combines_target_winds_with_speed_up_factor(monkeypatch):
     target_winds = np.stack(
         [
             np.full(shape, 3.0, dtype=np.float32),
-            np.full(shape, 5.0, dtype=np.float32),
+            np.full(shape, 5.23122549, dtype=np.float32),
         ],
         axis=0,
     )
