@@ -428,6 +428,7 @@ def test_warning_for_iteration_counts_inside_lag_time() -> None:
         DuffMoistureCode().process(cubes, month=4)
 
 
+@pytest.mark.usefixtures("iris_date_precision")
 def test_no_warning_for_metadata_outside_lag_time(
     recwarn: list[warnings.WarningMessage],
 ) -> None:

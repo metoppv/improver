@@ -886,6 +886,7 @@ class ConcreteFireWeatherForOutputValidation(FireWeatherBase):
         return np.full((5, 5), 50.0)
 
 
+@pytest.mark.usefixtures("iris_date_precision")
 def test_validate_output_range_no_warning_for_valid_output() -> None:
     """Test that _validate_output_range does not warn for valid output values."""
     cubes = input_cubes_basic(temp_val=20.0, rh_val=50.0)
@@ -1034,6 +1035,7 @@ def test_validate_output_range_warns_with_actual_min_max_values() -> None:
     assert isinstance(result, Cube)
 
 
+@pytest.mark.usefixtures("iris_date_precision")
 def test_validate_output_range_skips_undefined_outputs() -> None:
     """Test that _validate_output_range skips outputs without defined ranges."""
     cubes = input_cubes_basic(temp_val=20.0, rh_val=50.0)
@@ -1175,6 +1177,7 @@ class DummyPluginWithPartialRange(FireWeatherBase):
         ((None, 100.0), -150.0, False, None),
     ],
 )
+@pytest.mark.usefixtures("iris_date_precision")
 def test_output_validation_with_partial_ranges(
     output_range: tuple[float | None, float | None],
     output_value: float,

@@ -408,6 +408,7 @@ def test_warning_for_iteration_count_inside_lag_time() -> None:
         DroughtCode().process(cubes, month=4)
 
 
+@pytest.mark.usefixtures("iris_date_precision")
 def test_no_warning_for_metadata_outside_lag_time(
     recwarn: list[warnings.WarningMessage],
 ) -> None:

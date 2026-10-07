@@ -122,6 +122,7 @@ def test_warning_for_metadata_inside_lag_time() -> None:
     assert cube.attributes["analysis_ready"] == "False"
 
 
+@pytest.mark.usefixtures("iris_date_precision")
 def test_no_warning_for_metadata_outside_lag_time(
     recwarn: list[warnings.WarningMessage],
 ) -> None:
