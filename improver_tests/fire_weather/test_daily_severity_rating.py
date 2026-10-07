@@ -9,7 +9,12 @@ import pytest
 from iris.cube import Cube, CubeList
 
 from improver.fire_weather.daily_severity_rating import DailySeverityRating
-from improver_tests.fire_weather import INPUT_ATTRIBUTES, make_cube, make_input_cubes
+from improver_tests.fire_weather import (
+    DEFAULT_CYCLE_TIME,
+    INPUT_ATTRIBUTES,
+    make_cube,
+    make_input_cubes,
+)
 
 
 def input_cubes(
@@ -69,7 +74,7 @@ def test__calculate(
             Expected DSR value.
     """
     cubes = input_cubes(fwi_val=fwi_val)
-    plugin = DailySeverityRating()
+    plugin = DailySeverityRating(cycletime=DEFAULT_CYCLE_TIME)
     plugin.load_input_cubes(CubeList(cubes))
     dsr = plugin._calculate()
 
@@ -88,7 +93,7 @@ def test__calculate_no_negative_values(fwi_val: float) -> None:
             Fire Weather Index value to test.
     """
     cubes = input_cubes(fwi_val=fwi_val)
-    plugin = DailySeverityRating()
+    plugin = DailySeverityRating(cycletime=DEFAULT_CYCLE_TIME)
     plugin.load_input_cubes(CubeList(cubes))
     dsr = plugin._calculate()
     assert np.all(dsr >= 0.0), f"Negative DSR for FWI={fwi_val}"
@@ -105,7 +110,7 @@ def test__calculate_spatially_varying() -> None:
         make_cube(fwi_data, "fire_weather_index", "1", add_time_coord=True),
     ]
 
-    plugin = DailySeverityRating()
+    plugin = DailySeverityRating(cycletime=DEFAULT_CYCLE_TIME)
     plugin.load_input_cubes(CubeList(cubes))
     dsr = plugin._calculate()
 
@@ -151,7 +156,7 @@ def test_process(
             Expected DSR output value.
     """
     cubes = input_cubes(fwi_val=fwi_val)
-    result = DailySeverityRating().process(cubes)
+    result = DailySeverityRating(cycletime=DEFAULT_CYCLE_TIME).process(cubes)
 
     assert isinstance(result, Cube)
     assert result.shape == (5, 5)
@@ -172,8 +177,7 @@ def test_process_spatially_varying() -> None:
     cubes = [
         make_cube(fwi_data, "fire_weather_index", *make_cube_args),
     ]
-
-    result = DailySeverityRating().process(cubes)
+    result = DailySeverityRating(cycletime=DEFAULT_CYCLE_TIME).process(cubes)
 
     # Verify shape, type, and all values are non-negative
     assert result.data.shape == (3, 3)
@@ -194,7 +198,7 @@ def test_process_spatially_varying() -> None:
 def test_process_zero_fwi() -> None:
     """Test that when FWI=0, DSR equals 0."""
     cubes = input_cubes(fwi_val=0.0)
-    result = DailySeverityRating().process(cubes)
+    result = DailySeverityRating(cycletime=DEFAULT_CYCLE_TIME).process(cubes)
 
     assert isinstance(result, Cube)
     assert result.long_name == "daily_severity_rating"

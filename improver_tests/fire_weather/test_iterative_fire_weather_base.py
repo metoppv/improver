@@ -14,6 +14,7 @@ from iris.cube import Cube
 
 from improver.fire_weather import IterativeFireWeatherBase
 from improver_tests.fire_weather import (
+    DEFAULT_CYCLE_TIME,
     DEFAULT_START_DATE,
     DEFAULT_TIME,
     INPUT_ATTRIBUTES,
@@ -50,7 +51,7 @@ class ConcreteIterativeFireWeather(IterativeFireWeatherBase):
         return self.temperature.data + self.precipitation.data
 
 
-plugin = ConcreteIterativeFireWeather()
+plugin = ConcreteIterativeFireWeather(cycletime=DEFAULT_CYCLE_TIME)
 
 
 @pytest.fixture
