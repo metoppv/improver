@@ -53,6 +53,7 @@ below:
  - Zhiliang Fan (Bureau of Meteorology, Australia)
  - Ben Fitzpatrick (Met Office, UK)
  - Tom Gale (Bureau of Meteorology, Australia)
+ - Katharine Grant (Met Office, UK)
  - Sam Griffiths (Met Office, UK)
  - Luke Hoffmann (Bureau of Meteorology, Australia)
  - Ben Hooper (Met Office, UK)

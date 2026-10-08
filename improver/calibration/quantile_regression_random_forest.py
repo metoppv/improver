@@ -561,7 +561,6 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
                 Value to be added before transformation.
             unique_site_id_keys: The names of the coordinates that uniquely identify
                 each site, e.g. "wmo_id" or ["latitude", "longitude"].
-
         """
         self.target_name = target_name
         self.feature_config = feature_config
@@ -628,8 +627,8 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
             pre_transform_addition=self.pre_transform_addition,
             unique_site_id_keys=self.unique_site_id_keys,
         )
-        forecast_df = sanitise_forecast_dataframe(forecast_df, self.feature_config)
 
+        forecast_df = sanitise_forecast_dataframe(forecast_df, self.feature_config)
         feature_values = np.array(forecast_df[feature_column_names])
         del forecast_df
 

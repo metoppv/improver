@@ -892,18 +892,29 @@ class Test_process(Test_NeighbourSelection):
         """Test which neighbour is returned in an artificial case in which two
         neighbouring grid points are identically close. Identical to the test
         above except for the land constraint is now applied, so the neigbour is
-        found using the KDTree. Due to precision in the coordinate transform
-        the neighbour to the west is returned everytime."""
+        found using the KDTree. A KDTree cannot be relied upon to return a
+        consistent neighbour in a tied situation on different machines, so this
+        test is brittle if we expect a single answer. It should return a
+        consistent neighbour on a given machine and using a consistent environment.
+        As such here we simply test that one of the two outcomes is returned
+        rather than trying to enforce consistency, and that running the search
+        twice results in the same neighbour being returned."""
 
         self.global_sites[0]["longitude"] = -60.0
 
-        plugin = NeighbourSelection(land_constraint=True, search_radius=1e8)
-        result = plugin.process(
+        plugin1 = NeighbourSelection(land_constraint=True, search_radius=1e8)
+        result1 = plugin1.process(
             self.global_sites, self.global_orography, self.global_land_mask
         )
-        expected = [[[1], [4], [-3]]]
+        plugin2 = NeighbourSelection(land_constraint=True, search_radius=1e8)
+        result2 = plugin2.process(
+            self.global_sites, self.global_orography, self.global_land_mask
+        )
+        expected = {((4, 4, 2)), ((1, 4, -3))}
 
-        np.testing.assert_array_equal(result.data, expected)
+        assert tuple(result1.data.flatten().tolist()) in expected
+        assert tuple(result2.data.flatten().tolist()) in expected
+        np.testing.assert_array_equal(result1.data, result2.data)
 
     def test_global_tied_case_nearest_land_min_dz(self):
         """Test which neighbour is returned in an artificial case in which two
@@ -911,22 +922,36 @@ class Test_process(Test_NeighbourSelection):
         above except for now with both a land constraint and minimum dz
         constraint. The neighbouring islands have been set to have the
         same vertical displacement as each other from the spot site. The
-        neigbour is found using the KDTree. Due to precision in the coordinate
-        transform the neighbour to the west is returned everytime."""
+        neigbour is found using the KDTree. A KDTree cannot be relied upon to
+        return a consistent neighbour in a tied situation on different machines,
+        so this test is brittle if we expect a single answer. It should return a
+        consistent neighbour on a given machine and using a consistent environment.
+        As such here we simply test that one of the two outcomes is returned
+        rather than trying to enforce consistency, and that running the search
+        twice results in the same neighbour being returned."""
 
         self.global_sites[0]["longitude"] = -60.0
         self.global_sites[0]["altitude"] = 5.0
         self.global_orography.data[4, 4] = 5.0
 
-        plugin = NeighbourSelection(
+        plugin1 = NeighbourSelection(
             land_constraint=True, search_radius=1e8, minimum_dz=True
         )
-        result = plugin.process(
+        result1 = plugin1.process(
             self.global_sites, self.global_orography, self.global_land_mask
         )
-        expected = [[[1], [4], [0]]]
+        plugin2 = NeighbourSelection(
+            land_constraint=True, search_radius=1e8, minimum_dz=True
+        )
+        result2 = plugin2.process(
+            self.global_sites, self.global_orography, self.global_land_mask
+        )
 
-        np.testing.assert_array_equal(result.data, expected)
+        expected = {((1, 4, 0)), ((4, 4, 0))}
+
+        assert tuple(result1.data.flatten().tolist()) in expected
+        assert tuple(result2.data.flatten().tolist()) in expected
+        np.testing.assert_array_equal(result1.data, result2.data)
 
 
 if __name__ == "__main__":
