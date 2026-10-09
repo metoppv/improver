@@ -360,6 +360,8 @@ class LoadForTrainQRF(PostProcessingPlugin):
 
         """
         if not self.quantile_forest_installed:
+            msg = "The quantile_forest package is not installed. No parquet files have been processed."
+            warnings.warn(msg)
             return None, None, None
         cube_inputs, parquets, _ = split_netcdf_parquet_pickle(file_paths)
 
