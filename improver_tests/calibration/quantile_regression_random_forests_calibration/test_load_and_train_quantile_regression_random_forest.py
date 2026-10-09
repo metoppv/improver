@@ -1284,3 +1284,38 @@ def test_unexpected_preparation(
     ):
         result = plugin(forecast_df, truth_df)
     assert result == (None, None, None)
+
+
+def test_quantile_forest_not_installed(monkeypatch):
+    """Test that a warning is raised if the quantile_forest package is not installed."""
+    feature_config = {"air_temperature": ["mean", "std", "altitude"]}
+    parquet_diagnostic_names = ["temperature_at_screen_level"]
+    cf_names = ["air_temperature"]
+    forecast_periods = "6:18:6"
+    cycletime = "20200101T0000Z"
+    training_length = 7
+    experiments = ["latestblend"]
+
+    monkeypatch.setattr(
+        "improver.calibration.load_and_train_quantile_regression_random_forest.quantile_forest_package_available",
+        lambda: False,
+    )
+
+    plugin = LoadForTrainQRF(
+        feature_config=feature_config,
+        parquet_diagnostic_names=parquet_diagnostic_names,
+        cf_names=cf_names,
+        forecast_periods=forecast_periods,
+        cycletime=cycletime,
+        training_length=training_length,
+        experiments=experiments,
+    )
+
+    msg = (
+        "The quantile_forest package is not installed. "
+        "No parquet files have been processed."
+    )
+    with pytest.warns(UserWarning, match=msg):
+        result = plugin([])
+    assert result == (None, None, None)
+    assert plugin.quantile_forest_installed is False
