@@ -14,6 +14,9 @@ from iris.cube import Cube, CubeList
 from iris.exceptions import ConstraintMismatchError
 
 from improver import BasePlugin
+from improver.metadata.forecast_times import (
+    rebadge_forecasts_as_latest_cycle,
+)
 from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.copy_metadata import CopyMetadata
 from improver.utilities.load import load_baseline_cube
@@ -102,6 +105,15 @@ class FireWeatherBase(BasePlugin):
         "build_up_index": (0.0, 500.0),  # BUI valid range
         "fire_weather_index": (0.0, 100.0),  # FWI valid range
     }
+
+    def __init__(self, cycletime: str):
+        """
+        Args:
+            cycletime:
+                The required workflow cycle time to use as the output forecast
+                reference time, in YYYYMMDDTHHMMZ format.
+        """
+        self.cycletime = cycletime
 
     def load_input_cubes(
         self,
@@ -247,8 +259,12 @@ class FireWeatherBase(BasePlugin):
         """Creates an output cube with specified data and metadata.
 
         For classes that use precipitation data (FFMC, DMC, DC), automatically
-        updates the 'forecast_reference_time' and 'time' coordinates from the
-        precipitation cube to reflect the 24-hour accumulation period.
+        updates the 'time' coordinate from the precipitation cube to reflect
+        the 24-hour accumulation period.
+
+        The 'forecast_reference_time' is set from the required cycletime. The
+        'forecast_period' is recalculated so that it remains consistent with
+        'time' and 'forecast_reference_time'.
 
         Args:
             data:
@@ -272,10 +288,13 @@ class FireWeatherBase(BasePlugin):
 
         # If this class uses precipitation, update time coordinates from precipitation cube
         if hasattr(self, "precipitation"):
-            copy = CopyMetadata(aux_coord=["forecast_reference_time", "time"])
+            copy = CopyMetadata(aux_coord=["time"])
             output_cube = copy.process(output_cube, self.precipitation)
-            output_cube.coord("forecast_reference_time").bounds = None
             output_cube.coord("time").bounds = None
+
+        output_cube = rebadge_forecasts_as_latest_cycle(
+            [output_cube], cycletime=self.cycletime
+        )[0]
 
         return self._set_metadata(output_cube)
 

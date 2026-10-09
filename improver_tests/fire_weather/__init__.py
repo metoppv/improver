@@ -13,6 +13,7 @@ from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 # Default times for test cubes
 DEFAULT_FRT = datetime(2017, 11, 10, 0, 0)
+DEFAULT_CYCLE_TIME = DEFAULT_FRT.strftime("%Y%m%dT%H%MZ")
 DEFAULT_TIME = datetime(2017, 11, 10, 12, 0)
 DEFAULT_TIME_BOUNDS = (datetime(2017, 11, 10, 0, 0), datetime(2017, 11, 10, 12, 0))
 DEFAULT_ITERATION_COUNT = 55
