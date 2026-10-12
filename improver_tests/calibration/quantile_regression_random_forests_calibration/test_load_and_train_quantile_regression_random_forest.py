@@ -468,9 +468,11 @@ def amend_expected_forecast_df(
     """Amend the expected forecast DataFrame to match the output of the plugin."""
     forecast_df = filter_forecast_periods(forecast_df, forecast_periods)
     for column in ["time", "forecast_reference_time", "blend_time"]:
-        forecast_df[column] = pd.to_datetime(forecast_df[column], unit="ns", utc=True)
+        forecast_df[column] = pd.to_datetime(forecast_df[column], utc=True)
+        forecast_df[column] = forecast_df[column].astype("datetime64[ns, UTC]")
     for column in ["forecast_period", "period"]:
         forecast_df[column] = pd.to_timedelta(forecast_df[column], unit="ns")
+        forecast_df[column] = forecast_df[column].astype("timedelta64[ns]")
 
     base_df = forecast_df[forecast_df["diagnostic"] == parquet_diagnostic_names[0]]
     for parquet_diagnostic_name, cf_name in zip(
@@ -510,7 +512,8 @@ def amend_expected_forecast_df(
 def amend_expected_truth_df(truth_df, parquet_diagnostic_name):
     """Amend the expected truth DataFrame to match the output of the plugin."""
     truth_df = truth_df[truth_df["diagnostic"] == parquet_diagnostic_name]
-    truth_df["time"] = pd.to_datetime(truth_df["time"], unit="ns", utc=True)
+    truth_df["time"] = pd.to_datetime(truth_df["time"], utc=True)
+    truth_df["time"] = truth_df["time"].astype("datetime64[ns, UTC]")
     return truth_df
 
 
@@ -1270,7 +1273,10 @@ def test_unexpected_preparation(
     _, forecast_df, _ = _create_multi_site_forecast_parquet_file(tmp_path)
     _, truth_df = _create_multi_site_truth_parquet_file(tmp_path)
 
-    truth_df.loc[:, "time"] = pd.Timestamp("2020-01-01 00:00:00", tz="utc")
+    truth_df["time"] = pd.Series(
+        [pd.Timestamp("2020-01-01 00:00:00", tz="utc")] * len(truth_df),
+        index=truth_df.index,
+    ).astype("datetime64[ns, UTC]")
 
     plugin = PrepareAndTrainQRF(
         feature_config=feature_config,
