@@ -10,7 +10,7 @@ dependencies:
   - iris=3.12
   - joblib
   - numpy=2.2
-  - pandas<3  # https://github.com/SciTools/iris/issues/6761
+  - pandas>=3  # https://github.com/SciTools/iris/issues/6761
   - proj=9.7.1  # https://github.com/metoppv/improver/issues/2325
   - pytz
   - scipy=1.15
@@ -42,6 +42,7 @@ dependencies:
   - sphinx-book-theme  
   - sphinx-gallery
   - threadpoolctl
+  - xarray
   - pip
   - pip:
     - git+https://github.com/metoppv/improver_example_data.git@${BRANCH_NAME} 
