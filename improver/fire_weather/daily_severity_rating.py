@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Plugin to calculate the Daily Severity Rating (Daily Severity Rating)."""
+"""Plugin to calculate the Daily Severity Rating."""
 
 import numpy as np
 from iris.cube import Cube
