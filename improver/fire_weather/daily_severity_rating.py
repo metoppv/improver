@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Plugin to calculate the Fire Severity Index (Daily Severity Rating)."""
+"""Plugin to calculate the Daily Severity Rating (Daily Severity Rating)."""
 
 import numpy as np
 from iris.cube import Cube
@@ -10,14 +10,12 @@ from iris.cube import Cube
 from improver.fire_weather import FireWeatherBase
 
 
-class FireSeverityIndex(FireWeatherBase):
+class DailySeverityRating(FireWeatherBase):
     """
-    Plugin to calculate the Fire Severity Index (FSI), also known as the
-    Daily Severity Rating (DSR).
+    Plugin to calculate the Daily Severity Rating (DSR).
 
-    The DSR provides a numerical rating of the difficulty of controlling fires.
-    It is derived from the Fire Weather Index (FWI) and represents the daily
-    fire load and the expected effort required for fire suppression.
+    The DSR provides a numerical rating of the expected effort required to
+    suppress a fire. It is derived from the Fire Weather Index (FWI).
 
     This process is adapted directly from:
         Equations and FORTRAN Program for the
@@ -31,7 +29,7 @@ class FireSeverityIndex(FireWeatherBase):
 
     METADATA_SOURCE_CUBE = "fire_weather_index"
     INPUT_CUBE_NAMES = [METADATA_SOURCE_CUBE]
-    OUTPUT_CUBE_NAME = "fire_severity_index"
+    OUTPUT_CUBE_NAME = "daily_severity_rating"
     # Valid output ranges for warning checks (output_name: (min, max))
     # Minimum and maximum feasible values for each output index are drawn from
     # values reported in:

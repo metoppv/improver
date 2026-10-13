@@ -2,13 +2,13 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Tests for the FireSeverityIndex plugin."""
+"""Tests for the DailySeverityRating plugin."""
 
 import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
 
-from improver.fire_weather.fire_severity_index import FireSeverityIndex
+from improver.fire_weather.daily_severity_rating import DailySeverityRating
 from improver_tests.fire_weather import INPUT_ATTRIBUTES, make_cube, make_input_cubes
 
 
@@ -69,7 +69,7 @@ def test__calculate(
             Expected DSR value.
     """
     cubes = input_cubes(fwi_val=fwi_val)
-    plugin = FireSeverityIndex()
+    plugin = DailySeverityRating()
     plugin.load_input_cubes(CubeList(cubes))
     dsr = plugin._calculate()
 
@@ -88,7 +88,7 @@ def test__calculate_no_negative_values(fwi_val: float) -> None:
             Fire Weather Index value to test.
     """
     cubes = input_cubes(fwi_val=fwi_val)
-    plugin = FireSeverityIndex()
+    plugin = DailySeverityRating()
     plugin.load_input_cubes(CubeList(cubes))
     dsr = plugin._calculate()
     assert np.all(dsr >= 0.0), f"Negative DSR for FWI={fwi_val}"
@@ -105,7 +105,7 @@ def test__calculate_spatially_varying() -> None:
         make_cube(fwi_data, "fire_weather_index", "1", add_time_coord=True),
     ]
 
-    plugin = FireSeverityIndex()
+    plugin = DailySeverityRating()
     plugin.load_input_cubes(CubeList(cubes))
     dsr = plugin._calculate()
 
@@ -151,11 +151,11 @@ def test_process(
             Expected DSR output value.
     """
     cubes = input_cubes(fwi_val=fwi_val)
-    result = FireSeverityIndex().process(cubes)
+    result = DailySeverityRating().process(cubes)
 
     assert isinstance(result, Cube)
     assert result.shape == (5, 5)
-    assert result.long_name == "fire_severity_index"
+    assert result.long_name == "daily_severity_rating"
     assert result.units == "1"
     assert np.allclose(result.data, expected_dsr, rtol=0.01, atol=0.01)
     assert result.dtype == np.float32
@@ -173,7 +173,7 @@ def test_process_spatially_varying() -> None:
         make_cube(fwi_data, "fire_weather_index", *make_cube_args),
     ]
 
-    result = FireSeverityIndex().process(cubes)
+    result = DailySeverityRating().process(cubes)
 
     # Verify shape, type, and all values are non-negative
     assert result.data.shape == (3, 3)
@@ -194,10 +194,10 @@ def test_process_spatially_varying() -> None:
 def test_process_zero_fwi() -> None:
     """Test that when FWI=0, DSR equals 0."""
     cubes = input_cubes(fwi_val=0.0)
-    result = FireSeverityIndex().process(cubes)
+    result = DailySeverityRating().process(cubes)
 
     assert isinstance(result, Cube)
-    assert result.long_name == "fire_severity_index"
+    assert result.long_name == "daily_severity_rating"
     assert result.units == "1"
     assert np.allclose(result.data, 0.0, atol=1e-6)
     assert result.dtype == np.float32
