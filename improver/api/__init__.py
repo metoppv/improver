@@ -66,7 +66,7 @@ PROCESSING_MODULES = {
     "FieldTexture": "improver.utilities.textural",
     "FillRadarHoles": "improver.nowcasting.utilities",
     "FineFuelMoistureCode": "improver.fire_weather.fine_fuel_moisture_code",
-    "FireSeverityIndex": "improver.fire_weather.fire_severity_index",
+    "DailySeverityRating": "improver.fire_weather.daily_severity_rating",
     "FireWeatherIndex": "improver.fire_weather.fire_weather_index",
     "FreezingRain": "improver.precipitation.freezing_rain",
     "FrictionVelocity": "improver.wind_calculations.wind_downscaling",

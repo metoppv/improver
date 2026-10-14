@@ -70,7 +70,7 @@ class FireWeatherBase(BasePlugin):
         "initial_spread_index": "1",
         "build_up_index": "1",
         "fire_weather_index": "1",
-        "fire_severity_index": "1",
+        "daily_severity_rating": "1",
         # Disambiguated input indices (used by FFMC, DMC, DC, and ISI calculations)
         "input_ffmc": "1",
         "input_dmc": "1",
@@ -417,7 +417,7 @@ class FireWeatherBase(BasePlugin):
             take iterative datasets as inputs, because the context of when the build up
             period was begun and whether the data is ready is important for stakeholders.
             These downstream datasets include the Initial Spread Index, the Build Up Index,
-            the Fire Weather Index and the Fire Severity Index.
+            the Fire Weather Index and the Daily Severity Rating.
 
         """
         if not self.METADATA_SOURCE_CUBE:
