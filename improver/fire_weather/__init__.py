@@ -110,8 +110,8 @@ class FireWeatherBase(BasePlugin):
         """
         Args:
             cycletime:
-                The required workflow cycle time to use as the output forecast
-                reference time, in YYYYMMDDTHHMMZ format.
+                The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
+                Used to set the required forecast reference time.
         """
         self.cycletime = cycletime
 
@@ -262,9 +262,9 @@ class FireWeatherBase(BasePlugin):
         updates the 'time' coordinate from the precipitation cube to reflect
         the 24-hour accumulation period.
 
-        The 'forecast_reference_time' is set from the required cycletime. The
-        'forecast_period' is recalculated so that it remains consistent with
-        'time' and 'forecast_reference_time'.
+        The 'forecast_reference_time' is derived from the cycletime provided when
+        the class instance is constructed. The 'forecast_period' is then recalculated
+        so that it is consistent with 'time' and 'forecast_reference_time'.
 
         Args:
             data:
