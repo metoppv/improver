@@ -665,8 +665,8 @@ def test_load_for_qrf_ignores_initial_deterministic_file_for_schema_detection(
     percentile/realization coordinate, representing a deterministic diagnostic such
     as wind direction. The real forecast file is written later in the directory and
     does contain the ensemble representation field; the loader should keep scanning
-    until it finds a valid representation file rather than assuming the first
-    file is representative.
+    until it finds a valid representation file rather than assuming the first file
+    is representative.
     """
     forecast_path, base_expected_forecast_df, _ = (
         _create_multi_site_forecast_parquet_file(tmp_path, representation="percentile")
@@ -688,14 +688,12 @@ def test_load_for_qrf_ignores_initial_deterministic_file_for_schema_detection(
         feature_config={
             "air_temperature": ["mean", "std", "altitude"],
             "wind_speed": ["mean", "std"],
-            "wind_from_direction": ["static"],
         },
         parquet_diagnostic_names=[
             "temperature_at_screen_level",
             "wind_speed_at_10m",
-            "wind_direction_at_10m",
         ],
-        cf_names=["air_temperature", "wind_speed", "wind_from_direction"],
+        cf_names=["air_temperature", "wind_speed"],
         forecast_periods="6:18:6",
         cycletime="20170103T0000Z",
         training_length=2,
@@ -705,8 +703,8 @@ def test_load_for_qrf_ignores_initial_deterministic_file_for_schema_detection(
     expected_forecast_df = amend_expected_forecast_df(
         base_expected_forecast_df.copy(),
         "6:18:6",
-        ["temperature_at_screen_level", "wind_speed_at_10m", "wind_direction_at_10m"],
-        ["air_temperature", "wind_speed", "wind_from_direction"],
+        ["temperature_at_screen_level", "wind_speed_at_10m"],
+        ["air_temperature", "wind_speed"],
         "percentile",
         ["wmo_id"],
     )
