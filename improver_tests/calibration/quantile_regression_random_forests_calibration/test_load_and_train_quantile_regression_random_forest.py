@@ -655,6 +655,81 @@ def test_load_for_qrf(
         np.testing.assert_almost_equal(cube_inputs[0].data, expected_cube.data)
 
 
+def test_load_for_qrf_ignores_initial_deterministic_file_for_schema_detection(
+    tmp_path,
+):
+    """Test that schema detection skips deterministic parquet files and finds the
+    later percentile file.
+
+    The first candidate parquet file in the directory intentionally has no
+    percentile/realization coordinate, representing a deterministic diagnostic such
+    as wind direction. The real forecast file is written later in the directory and
+    does contain the ensemble representation field; the loader should keep scanning
+    until it finds a valid representation file rather than assuming the first
+    file is representative.
+    """
+    forecast_path, base_expected_forecast_df, _ = (
+        _create_multi_site_forecast_parquet_file(tmp_path, representation="percentile")
+    )
+    truth_path, expected_truth_df = _create_multi_site_truth_parquet_file(tmp_path)
+
+    deterministic_df = base_expected_forecast_df[
+        base_expected_forecast_df["diagnostic"] == "wind_direction_at_10m"
+    ].copy()
+    deterministic_df = deterministic_df.drop(columns=["percentile"], errors="ignore")
+    deterministic_df.to_parquet(
+        forecast_path / "a_deterministic_wind_direction.parquet",
+        index=False,
+        engine="pyarrow",
+    )
+
+    plugin = LoadForTrainQRF(
+        experiments=["latestblend", "recentblend"],
+        feature_config={
+            "air_temperature": ["mean", "std", "altitude"],
+            "wind_speed": ["mean", "std"],
+            "wind_from_direction": ["static"],
+        },
+        parquet_diagnostic_names=[
+            "temperature_at_screen_level",
+            "wind_speed_at_10m",
+            "wind_direction_at_10m",
+        ],
+        cf_names=["air_temperature", "wind_speed", "wind_from_direction"],
+        forecast_periods="6:18:6",
+        cycletime="20170103T0000Z",
+        training_length=2,
+        unique_site_id_keys=["wmo_id"],
+    )
+
+    expected_forecast_df = amend_expected_forecast_df(
+        base_expected_forecast_df.copy(),
+        "6:18:6",
+        ["temperature_at_screen_level", "wind_speed_at_10m", "wind_direction_at_10m"],
+        ["air_temperature", "wind_speed", "wind_from_direction"],
+        "percentile",
+        ["wmo_id"],
+    )
+    expected_truth_df = amend_expected_truth_df(
+        expected_truth_df, "temperature_at_screen_level"
+    )
+
+    forecast_df, truth_df, _ = plugin([forecast_path, truth_path])
+
+    pd.testing.assert_frame_equal(
+        forecast_df,
+        expected_forecast_df,
+        check_dtype=True,
+        check_datetimelike_compat=True,
+    )
+    pd.testing.assert_frame_equal(
+        truth_df,
+        expected_truth_df,
+        check_dtype=True,
+        check_datetimelike_compat=True,
+    )
+
+
 def test_load_for_qrf_with_mixed_whitespace_padding_in_forecast_inputs(tmp_path):
     """Test that dynamic forecast diagnostics merge when site IDs have
     different whitespace padding across inputs."""
