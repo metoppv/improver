@@ -724,10 +724,12 @@ def expand_bounds(
             result_coord.bounds = result_coord.bounds.astype(FLOAT_DTYPE)
 
         if midpoint_bound:
-            result_coord.points = [(new_low_bound + new_top_bound) / 2]
+            midpoint = (new_low_bound + new_top_bound) / 2
+            result_coord.points = np.array([midpoint], dtype=result_coord.points.dtype)
         else:
-            result_coord.points = [new_top_bound]
-
+            result_coord.points = np.array(
+                [new_top_bound], dtype=result_coord.points.dtype
+            )
         if result_coord.points.dtype in FLOAT_TYPES:
             result_coord.points = result_coord.points.astype(FLOAT_DTYPE)
 

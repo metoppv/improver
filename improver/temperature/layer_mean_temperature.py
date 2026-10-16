@@ -92,7 +92,7 @@ class CalculateLayerMeanTemperature(BasePlugin):
             2D cube of layer mean temperature.
         """
         # Set up array for holding sum of products of temperature and vertical distance
-        layer_temp_product = np.zeros(layer_cube.data.shape[1:])
+        layer_temp_product = np.zeros(layer_cube.data.shape[1:], dtype=np.float32)
 
         # Estimate mean temperature of layers and
         # Weight by vertical extent of layer
@@ -112,7 +112,9 @@ class CalculateLayerMeanTemperature(BasePlugin):
         )
 
         # Divide by total thickness to get mean
-        lmt_array = layer_temp_product / (altitude_array[-1] - altitude_array[0])
+        lmt_array = (
+            layer_temp_product / (altitude_array[-1] - altitude_array[0])
+        ).astype(np.float32)
 
         if verbosity:
             print("Layer mean temperature array:", lmt_array)
@@ -122,6 +124,7 @@ class CalculateLayerMeanTemperature(BasePlugin):
             lmt_array,
             var_name="air_temperature",
             units="K",
+            attributes=layer_cube.attributes.copy(),
             dim_coords_and_dims=(
                 (layer_cube.coord("projection_y_coordinate"), 0),
                 (layer_cube.coord("projection_x_coordinate"), 1),

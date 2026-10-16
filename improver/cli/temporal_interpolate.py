@@ -11,13 +11,12 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    start_cube: cli.inputcube,
-    end_cube: cli.inputcube,
-    *,
+    *cubes: cli.inputcube,
     interval_in_mins: int = None,
     times: cli.comma_separated_list = None,
     interpolation_method="linear",
     accumulation: bool = False,
+    is_last_timestep: bool = False,
     max: bool = False,
     min: bool = False,
     model_path: str = None,
@@ -37,10 +36,9 @@ def process(
     is not available at these times.
 
     Args:
-        start_cube (iris.cube.Cube):
-            Cube containing the data at the beginning.
-        end_cube (iris.cube.Cube):
-            Cube containing the data at the end.
+        cubes (iris.cube.Cube):
+            Cubes containing the data at the beginning and end. For accumulations,
+            cubes containing data in the previous, current and next period.
         interval_in_mins (int):
             Specifies the interval in minutes at which to interpolate between
             the two input cubes.
@@ -63,11 +61,14 @@ def process(
             learning model for frame interpolation.
         accumulation:
             Set True if the diagnostic being temporally interpolated is a
-            period accumulation. The output will be renormalised to ensure
-            that the total across the period constructed from the shorter
-            intervals matches the total across the period from the coarser
-            intervals. Trends between adjacent input periods will be used
-            to provide variation across the interpolated periods.
+            period accumulation. Enabling this option will result in the period
+            accumulation being disaggregated into shorter periods. The output
+            will be renormalised to ensure that the total across the period
+            constructed from the shorter intervals matches the total across the
+            period from the coarser intervals.
+        is_last_timestep:
+            When True and accumulation is True, the second input is duplicated as
+            the third input to the interpolation.
         max:
             Set True if the diagnostic being temporally interpolated is a
             period maximum. Trends between adjacent input periods will be used
@@ -118,15 +119,14 @@ def process(
             interpolated cubes will always be in chronological order of
             earliest to latest regardless of the order of the input.
     """
+    from iris.cube import CubeList
+
     from improver.utilities.cube_manipulation import MergeCubes
-    from improver.utilities.temporal import cycletime_to_datetime, iris_time_to_datetime
+    from improver.utilities.temporal import cycletime_to_datetime
     from improver.utilities.temporal_interpolation import TemporalInterpolation
 
-    (time_start,) = iris_time_to_datetime(start_cube.coord("time"))
-    (time_end,) = iris_time_to_datetime(end_cube.coord("time"))
-    if time_end < time_start:
-        # swap cubes
-        start_cube, end_cube = end_cube, start_cube
+    # Ensure cubes are in ascending chronological order.
+    cubes = sorted(CubeList(cubes), key=lambda cube: cube.coord("time").points[0])
 
     if times is not None:
         times = [cycletime_to_datetime(timestr) for timestr in times]
@@ -136,6 +136,7 @@ def process(
         times=times,
         interpolation_method=interpolation_method,
         accumulation=accumulation,
+        is_last_timestep=is_last_timestep,
         max=max,
         min=min,
         model_path=model_path,
@@ -146,5 +147,5 @@ def process(
         max_batch=max_batch,
         parallel_backend=parallel_backend,
         n_workers=n_workers,
-    )(start_cube, end_cube)
+    )(*cubes)
     return MergeCubes()(result)

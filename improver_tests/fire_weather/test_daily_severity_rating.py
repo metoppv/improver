@@ -2,14 +2,19 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Tests for the FireSeverityIndex plugin."""
+"""Tests for the DailySeverityRating plugin."""
 
 import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
 
-from improver.fire_weather.fire_severity_index import FireSeverityIndex
-from improver_tests.fire_weather import make_cube, make_input_cubes
+from improver.fire_weather.daily_severity_rating import DailySeverityRating
+from improver_tests.fire_weather import (
+    DEFAULT_CYCLE_TIME,
+    INPUT_ATTRIBUTES,
+    make_cube,
+    make_input_cubes,
+)
 
 
 def input_cubes(
@@ -32,8 +37,8 @@ def input_cubes(
     Returns:
         Tuple containing FWI Cube.
     """
-    args = fwi_val, fwi_units, True, {"start_date": "2025-03-17"}
-    cube_args = [("canadian_forest_fire_weather_index", *args)]
+    args = fwi_val, fwi_units, True, INPUT_ATTRIBUTES
+    cube_args = [("fire_weather_index", *args)]
     return make_input_cubes(cube_args, shape=shape)
 
 
@@ -69,7 +74,7 @@ def test__calculate(
             Expected DSR value.
     """
     cubes = input_cubes(fwi_val=fwi_val)
-    plugin = FireSeverityIndex()
+    plugin = DailySeverityRating(cycletime=DEFAULT_CYCLE_TIME)
     plugin.load_input_cubes(CubeList(cubes))
     dsr = plugin._calculate()
 
@@ -88,7 +93,7 @@ def test__calculate_no_negative_values(fwi_val: float) -> None:
             Fire Weather Index value to test.
     """
     cubes = input_cubes(fwi_val=fwi_val)
-    plugin = FireSeverityIndex()
+    plugin = DailySeverityRating(cycletime=DEFAULT_CYCLE_TIME)
     plugin.load_input_cubes(CubeList(cubes))
     dsr = plugin._calculate()
     assert np.all(dsr >= 0.0), f"Negative DSR for FWI={fwi_val}"
@@ -102,12 +107,10 @@ def test__calculate_spatially_varying() -> None:
     fwi_data = np.array([[5.0, 10.0, 20.0], [8.0, 15.0, 30.0], [12.0, 25.0, 50.0]])
 
     cubes = [
-        make_cube(
-            fwi_data, "canadian_forest_fire_weather_index", "1", add_time_coord=True
-        ),
+        make_cube(fwi_data, "fire_weather_index", "1", add_time_coord=True),
     ]
 
-    plugin = FireSeverityIndex()
+    plugin = DailySeverityRating(cycletime=DEFAULT_CYCLE_TIME)
     plugin.load_input_cubes(CubeList(cubes))
     dsr = plugin._calculate()
 
@@ -153,11 +156,11 @@ def test_process(
             Expected DSR output value.
     """
     cubes = input_cubes(fwi_val=fwi_val)
-    result = FireSeverityIndex().process(cubes)
+    result = DailySeverityRating(cycletime=DEFAULT_CYCLE_TIME).process(cubes)
 
     assert isinstance(result, Cube)
     assert result.shape == (5, 5)
-    assert result.long_name == "fire_severity_index"
+    assert result.long_name == "daily_severity_rating"
     assert result.units == "1"
     assert np.allclose(result.data, expected_dsr, rtol=0.01, atol=0.01)
     assert result.dtype == np.float32
@@ -169,13 +172,12 @@ def test_process_spatially_varying() -> None:
     Verifies vectorized DSR calculation with varying values across the grid.
     """
     fwi_data = np.array([[5.0, 10.0, 20.0], [8.0, 15.0, 30.0], [12.0, 25.0, 50.0]])
-    make_cube_args = "1", True, {"start_date": "2025-03-17"}
+    make_cube_args = "1", True, INPUT_ATTRIBUTES
 
     cubes = [
-        make_cube(fwi_data, "canadian_forest_fire_weather_index", *make_cube_args),
+        make_cube(fwi_data, "fire_weather_index", *make_cube_args),
     ]
-
-    result = FireSeverityIndex().process(cubes)
+    result = DailySeverityRating(cycletime=DEFAULT_CYCLE_TIME).process(cubes)
 
     # Verify shape, type, and all values are non-negative
     assert result.data.shape == (3, 3)
@@ -196,10 +198,10 @@ def test_process_spatially_varying() -> None:
 def test_process_zero_fwi() -> None:
     """Test that when FWI=0, DSR equals 0."""
     cubes = input_cubes(fwi_val=0.0)
-    result = FireSeverityIndex().process(cubes)
+    result = DailySeverityRating(cycletime=DEFAULT_CYCLE_TIME).process(cubes)
 
     assert isinstance(result, Cube)
-    assert result.long_name == "fire_severity_index"
+    assert result.long_name == "daily_severity_rating"
     assert result.units == "1"
     assert np.allclose(result.data, 0.0, atol=1e-6)
     assert result.dtype == np.float32

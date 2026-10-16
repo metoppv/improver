@@ -218,6 +218,25 @@ def test_multiple_constraints(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+def test_ignore_grid_match_check(tmp_path):
+    """Test that the spot extraction passes when ignore_grid_match is set to True and
+    the grids are mismatched."""
+    kgo_dir = acc.kgo_root() / "spot-extract"
+    neighbour_path = kgo_dir / "inputs/all_methods_uk_different_model_grid_hash.nc"
+    diag_path = kgo_dir / "inputs/ukvx_temperature.nc"
+    kgo_path = kgo_dir / "outputs/ignore_grid_match_kgo.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        diag_path,
+        neighbour_path,
+        "--output",
+        output_path,
+        "--ignore-grid-match",
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
 @pytest.mark.parametrize(
     "bounds_option, kgo",
     (

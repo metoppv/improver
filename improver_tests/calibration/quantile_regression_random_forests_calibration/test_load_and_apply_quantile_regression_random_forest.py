@@ -412,6 +412,78 @@ def test_mismatching_temporal_coordinates(
     assert result.coord("forecast_period").points[0] == 12 * 3600
 
 
+@pytest.mark.parametrize(
+    "quantiles,max_allowed_difference,expected",
+    [
+        ([0.5], 0.0, [6.0, 8.0]), # No difference allowed, so the calibrated forecast is clipped to be equal to the uncalibrated forecast.
+        ([0.5], 2.0, [4.1, 6.0]), # Second value is outside bound, so should be clipped to 8.0 - 2.0 = 6.0.
+        ([0.5], 100.0, [4.1, 5.65]), # Calibrated forecast is within bounds so it is returned unmodified.
+        ([1/3, 2/3], 0.0, [[6.0, 8.0], [12.0, 14.0]]), # No difference allowed, so the calibrated forecast is clipped to be equal to the uncalibrated forecast.
+        ([1/3, 2/3], 3.0, [[4.1, 5.1], [9.0, 11.0]]), # Calibrated forecasts at second site should be clipped to 12.0 - 3.0 = 9.0 and 14.0 - 3.0 = 11.0.
+        ([1/3, 2/3], 100.0, [[4.1, 5.1], [4.1, 5.1]]), # Multiple quantiles, calibrated forecast is within bounds so it is returned unmodified.
+    ]
+)
+def test_max_allowed_difference(quantiles, max_allowed_difference, expected):
+    """Test the PrepareAndApplyQRF plugin with a maximum allowed difference between
+    the uncalibrated and calibrated forecast. If the difference exceeds this value,
+    the calibrated forecast is clipped to be within this value of the uncalibrated.
+
+    The uncalibrated forecasts are manually created such that each contains two sites
+    and the selected quantiles. The 50th percentile (0.5) uncalibrated forecast is
+    [6.0, 8.0] and the 33rd and 66th percentiles (1/3, 2/3) are [6.0, 8.0] and
+    [12.0, 14.0] respectively.
+    """
+
+    feature_config = {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]}
+    n_estimators = 2
+    max_depth = 2
+    random_state = 55
+    transformation = None
+    pre_transform_addition = 0
+    extra_kwargs = {}
+    include_dynamic = False
+    include_static = False
+    include_nans = False
+    include_latlon_nans = False
+    percentile_input = False
+    site_id = ["wmo_id"]
+
+    qrf_model, cube_inputs = set_up_for_expected(
+        feature_config, n_estimators, max_depth, random_state,
+        transformation, pre_transform_addition, extra_kwargs,
+        include_dynamic, include_static, include_nans, include_latlon_nans,
+        percentile_input, site_id, quantiles)
+
+    result = PrepareAndApplyQRF(
+        feature_config,
+        "wind_speed_at_10m",
+        unique_site_id_keys=site_id,
+        max_allowed_difference=max_allowed_difference,
+    )(cube_inputs, (qrf_model, transformation, pre_transform_addition))
+
+    print("Result: ", result.data)
+    print("Expected: ", expected)
+    assert isinstance(result, Cube)
+    assert result.name() == "wind_speed_at_10m"
+    assert result.units == "m s-1"
+    assert result.data.shape == (len(quantiles), 2)
+    assert np.allclose(result.data, expected, rtol=1e-2)
+
+@pytest.mark.parametrize("max_allowed_difference", [-2, -1.0, -1000.0, "bananas", [-1.0]])
+def test_bad_max_allowed_difference(max_allowed_difference):
+    """Test that the correct exception is raised when max_allowed_difference is not a non-negative float."""
+    feature_config = {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]}
+    site_id = ["wmo_id"]
+
+    with pytest.raises(ValueError, match="max_allowed_difference must be a non-negative float."):
+        PrepareAndApplyQRF(
+            feature_config,
+            "wind_speed_at_10m",
+            unique_site_id_keys=site_id,
+            max_allowed_difference=max_allowed_difference,
+        )
+
+
 def test_no_model_output(set_up_for_unexpected):
     """Test PrepareAndApplyQRF plugin behaviour when no model is provided."""
     (

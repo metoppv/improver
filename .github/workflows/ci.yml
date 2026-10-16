@@ -61,6 +61,9 @@ jobs:
     - name: Environment creation
       if: steps.report-cache-restore.outputs.cache-hit != 'true'
       uses: mamba-org/setup-micromamba@v3
+      env:
+        # https://github.com/metoppv/improver/pull/2430
+        CONDA_OVERRIDE_CUDA: "0"
       with:
         environment-file: envs/latest.yml
         init-shell: bash
@@ -201,6 +204,9 @@ jobs:
 
     - name: Environment creation
       uses: mamba-org/setup-micromamba@v3
+      env:
+        # https://github.com/metoppv/improver/pull/2430
+        CONDA_OVERRIDE_CUDA: "0"
       with:
         environment-file: envs/${{ matrix.env }}.yml
         init-shell: bash

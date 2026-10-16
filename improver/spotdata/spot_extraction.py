@@ -30,7 +30,11 @@ class SpotExtraction(BasePlugin):
     data.
     """
 
-    def __init__(self, neighbour_selection_method: str = "nearest") -> None:
+    def __init__(
+        self,
+        neighbour_selection_method: str = "nearest",
+        ignore_grid_match: bool = False,
+    ) -> None:
         """
         Args:
             neighbour_selection_method:
@@ -38,13 +42,25 @@ class SpotExtraction(BasePlugin):
                 coordinates that match a spot site. These are determined by
                 the neighbour finding method employed. This keyword is used to
                 extract the desired set of coordinates from the neighbour cube.
+            ignore_grid_match:
+                If True, the coordinate hash comparison between the diagnostic cube and
+                the neighbour cube will be ignored. This is not recommended, but
+                allows the version of Iris and/or Numpy in the plug-in execution
+                environment to be different from those that generated the neighbour cube.
+                If False, the grid match check will be performed and an error raised if the
+                cubes do not match. The default is False, and it is recommended to ensure
+                that the neighbour cube is generated on the same grid as the diagnostic cube
+                to avoid any potential issues with incorrect coordinate extraction.
+                @TODO: Remove this option once the hash calculation is more robust and can
+                be reliably used across different versions of Iris and Numpy.
         """
         self.neighbour_selection_method = neighbour_selection_method
+        self.ignore_grid_match = ignore_grid_match
 
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
-        return "<SpotExtraction: neighbour_selection_method: {}>".format(
-            self.neighbour_selection_method
+        return "<SpotExtraction: neighbour_selection_method: {}, ignore_grid_match: {}>".format(
+            self.neighbour_selection_method, self.ignore_grid_match
         )
 
     def extract_coordinates(self, neighbour_cube: Cube) -> Cube:
@@ -276,7 +292,8 @@ class SpotExtraction(BasePlugin):
             as information about the sites themselves.
         """
         # Check we are using a matched neighbour/diagnostic cube pair
-        check_grid_match([neighbour_cube, diagnostic_cube])
+        if not self.ignore_grid_match:
+            check_grid_match([neighbour_cube, diagnostic_cube])
 
         # Get the unique_site_id if it is present on the neighbour cbue
         unique_site_id_data = self.check_for_unique_id(neighbour_cube)

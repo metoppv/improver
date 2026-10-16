@@ -9,7 +9,11 @@ import pytest
 from iris.cube import Cube
 
 from improver.fire_weather.build_up_index import BuildUpIndex
-from improver_tests.fire_weather import START_DATE_DICT, make_input_cubes
+from improver_tests.fire_weather import (
+    DEFAULT_CYCLE_TIME,
+    INPUT_ATTRIBUTES,
+    make_input_cubes,
+)
 
 
 def input_cubes(
@@ -39,8 +43,8 @@ def input_cubes(
         A tuple of Iris Cubes for DMC and DC.
     """
     cube_args = [
-        ("duff_moisture_code", dmc_val, dmc_units, True, START_DATE_DICT),
-        ("drought_code", dc_val, dc_units, False, START_DATE_DICT),
+        ("duff_moisture_code", dmc_val, dmc_units, True, INPUT_ATTRIBUTES),
+        ("drought_code", dc_val, dc_units, False, INPUT_ATTRIBUTES),
     ]
     return tuple(make_input_cubes(cube_args, shape=shape))
 
@@ -88,7 +92,7 @@ def test__calculate(
             Expected BUI value.
     """
     cubes = input_cubes(dmc_val=dmc_val, dc_val=dc_val)
-    plugin = BuildUpIndex()
+    plugin = BuildUpIndex(cycletime=DEFAULT_CYCLE_TIME)
     plugin.load_input_cubes(cubes)
     bui = plugin._calculate()
 
@@ -105,7 +109,7 @@ def test__calculate_spatially_varying() -> None:
 
     cubes = input_cubes(dmc_val=dmc_data, dc_val=dc_data, shape=dmc_data.shape)
 
-    plugin = BuildUpIndex()
+    plugin = BuildUpIndex(cycletime=DEFAULT_CYCLE_TIME)
     plugin.load_input_cubes(cubes)
     bui = plugin._calculate()
 
@@ -156,7 +160,7 @@ def test_process(
             Expected BUI output value.
     """
     cubes = input_cubes(dmc_val=dmc_val, dc_val=dc_val)
-    result = BuildUpIndex().process(cubes)
+    result = BuildUpIndex(cycletime=DEFAULT_CYCLE_TIME).process(cubes)
 
     assert isinstance(result, Cube)
     assert result.shape == (5, 5)
@@ -176,7 +180,7 @@ def test_process_spatially_varying() -> None:
 
     cubes = input_cubes(dmc_val=dmc_data, dc_val=dc_data, shape=dmc_data.shape)
 
-    result = BuildUpIndex().process(cubes)
+    result = BuildUpIndex(cycletime=DEFAULT_CYCLE_TIME).process(cubes)
 
     # Verify shape, type, and all values are non-negative
     assert result.data.shape == (3, 3)
