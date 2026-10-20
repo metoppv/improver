@@ -531,7 +531,6 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         transformation: str = None,
         pre_transform_addition: np.float32 = 0,
         unique_site_id_keys: list[str] = ["wmo_id"],
-        max_allowed_difference: np.float32 = None,
     ) -> None:
         """Initialise the plugin.
 
@@ -562,10 +561,6 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
                 Value to be added before transformation.
             unique_site_id_keys: The names of the coordinates that uniquely identify
                 each site, e.g. "wmo_id" or ["latitude", "longitude"].
-            max_allowed_difference (float, optional):
-                The maximum allowed difference between the uncalibrated and calibrated forecast. If not
-                provided, no maximum difference check will be applied. Defaults to None.
-
         """
         self.target_name = target_name
         self.feature_config = feature_config
@@ -574,7 +569,6 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         _check_valid_transformation(self.transformation)
         self.pre_transform_addition = pre_transform_addition
         self.unique_site_id_keys = unique_site_id_keys
-        self.max_allowed_difference = max_allowed_difference
 
     def _reverse_transformation(self, forecast: np.ndarray) -> np.ndarray:
         """Reverse the transformation applied to the data prior to fitting the QRF.
@@ -599,7 +593,6 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         self,
         qrf_model: RandomForestQuantileRegressor,
         forecast_df: pd.DataFrame,
-        max_allowed_difference: float = None,
     ) -> np.ndarray:
         """Apply a quantile regression random forests model.
 
@@ -611,26 +604,6 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
             Calibrated forecast as a numpy array.
 
         """
-        has_cap = max_allowed_difference is not None
-        original_forecast_bounds = None
-        if has_cap:
-            groupby_cols = [
-                "forecast_reference_time",
-                "forecast_period",
-                *self.unique_site_id_keys,
-            ]
-            original_forecast_bounds = (
-                forecast_df.groupby(groupby_cols)[self.target_name]
-                .agg(["min", "max"])
-                .rename(
-                    columns={
-                        "min": "original_forecast_min",
-                        "max": "original_forecast_max",
-                    }
-                )
-                .reset_index()
-            )
-
         for variable_name in self.feature_config.keys():
             # Transform the feature cube data if a transformation is specified.
             if (
@@ -654,43 +627,15 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
             pre_transform_addition=self.pre_transform_addition,
             unique_site_id_keys=self.unique_site_id_keys,
         )
-        if has_cap:
-            forecast_df = forecast_df.merge(
-                original_forecast_bounds,
-                on=[
-                    "forecast_reference_time",
-                    "forecast_period",
-                    *self.unique_site_id_keys,
-                ],
-                how="left",
-            )
 
         forecast_df = sanitise_forecast_dataframe(forecast_df, self.feature_config)
         feature_values = np.array(forecast_df[feature_column_names])
-        if has_cap:
-            original_forecast_min = forecast_df["original_forecast_min"].to_numpy()
-            original_forecast_max = forecast_df["original_forecast_max"].to_numpy()
         del forecast_df
 
         calibrated_forecast = qrf_model.predict(
             feature_values, quantiles=self.quantiles
         )
         calibrated_forecast = self._reverse_transformation(calibrated_forecast)
+        calibrated_forecast = calibrated_forecast.astype(np.float32, copy=False)
 
-        if has_cap:
-            lower_bound = original_forecast_min - max_allowed_difference
-            upper_bound = original_forecast_max + max_allowed_difference
-            if calibrated_forecast.ndim == 1:
-                calibrated_forecast = np.clip(
-                    calibrated_forecast, lower_bound, upper_bound
-                )
-            else:
-                calibrated_forecast = np.clip(
-                    calibrated_forecast,
-                    lower_bound[:, np.newaxis],
-                    upper_bound[:, np.newaxis],
-                )
-            del original_forecast_min, original_forecast_max, lower_bound, upper_bound
-
-        calibrated_forecast = np.float32(calibrated_forecast)
         return calibrated_forecast

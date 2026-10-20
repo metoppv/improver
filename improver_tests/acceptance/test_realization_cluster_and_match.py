@@ -167,3 +167,34 @@ def test_three_lead_times(tmp_path):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_no_primary_input_skips_and_returns_no_output(tmp_path):
+    """If the primary input is absent, the CLI should warn and skip without
+    creating an output file."""
+    central_dir = acc.kgo_root() / "realization-cluster-and-match"
+    kgo_dir = central_dir / "two_forecast_period_input"
+    secondary_input = kgo_dir / "high_resolution_secondary_subdomain_PT0006H00M.nc"
+    target_grid_input = kgo_dir / "target_grid.nc"
+    hierarchy_input = kgo_dir / "hierarchy.json"
+    output_path = tmp_path / "output.nc"
+
+    args = [
+        secondary_input,
+        target_grid_input,
+        "--hierarchy",
+        hierarchy_input,
+        "--n-clusters",
+        "2",
+        "--model-id-attr",
+        "mosg__model_configuration",
+        "--target-grid-name",
+        "target_grid",
+        "--output",
+        output_path,
+    ]
+
+    with pytest.warns(UserWarning, match="No primary cube found"):
+        run_cli(args)
+
+    assert not output_path.exists()

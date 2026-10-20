@@ -298,7 +298,8 @@ def unify_cycletime(
     for cube in cubes:
         for target_coord in target_coords:
             new_frt_coord = _create_frt_type_coord(cube, cycletime, name=target_coord)
-            cube.remove_coord(new_frt_coord.name())
+            if cube.coords(new_frt_coord.name()):
+                cube.remove_coord(new_frt_coord.name())
             cube.add_aux_coord(new_frt_coord, data_dims=None)
 
         # Update the target_coords for consistency within each cube

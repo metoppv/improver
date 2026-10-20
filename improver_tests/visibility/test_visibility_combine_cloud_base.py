@@ -142,6 +142,43 @@ def test_basic(visibility_cube_name, cloud_base_cube_name, request, inverted):
     assert result.long_name == expected_name
 
 
+def test_output_uses_latest_forecast_reference_time():
+    """Demonstrate that the output cube should inherit metadata from the input with
+    the latest forecast reference time."""
+    visibility_cube = set_up_probability_cube(
+        np.full((5, 2, 3), dtype=np.float32, fill_value=0.5),
+        thresholds=[50, 1000, 2000, 5000, 7000],
+        variable_name="visibility_in_air",
+        threshold_units="m",
+        spp__relative_to_threshold="less_than",
+        time=datetime(2023, 11, 10, 4, 0),
+        frt=datetime(2023, 11, 10, 3, 0),
+    )
+    cloud_base_cube = set_up_probability_cube(
+        np.full((1, 2, 3), dtype=np.float32, fill_value=0.4),
+        thresholds=[10],
+        variable_name=CLOUD_NAME,
+        threshold_units="m",
+        spp__relative_to_threshold="less_than",
+        time=datetime(2023, 11, 10, 10, 0),
+        frt=datetime(2023, 11, 10, 8, 0),
+    )
+
+    result = VisibilityCombineCloudBase(
+        first_unscaled_threshold=5000, initial_scaling_value=0.6
+    )([visibility_cube, cloud_base_cube])
+
+    assert (
+        result.coord("forecast_reference_time").points[0]
+        == cloud_base_cube.coord("forecast_reference_time").points[0]
+    )
+    assert (
+        result.coord("forecast_period").points[0]
+        == result.coord("time").points[0]
+        - result.coord("forecast_reference_time").points[0]
+    )
+
+
 @pytest.mark.parametrize(
     "initial_scaling_value,first_unscaled_threshold,expected_0",
     (
