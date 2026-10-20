@@ -356,17 +356,21 @@ def test_distance_to_with_points_geometry(
 
     geometry = request.getfixturevalue(shape_file_crs)
 
-    single_site_cube = request.getfixturevalue(
+    single_point_cube = request.getfixturevalue(
         f"single_{site_or_grid_point}_{location}"
     )
 
     output_cube = DistanceToFeature(target_projection, "distance_to_thing")(
-        single_site_cube, geometry
+        single_point_cube, geometry
     )
     assert output_cube.name() == "distance_to_thing"
     assert output_cube.units == "m"
-    assert output_cube.coord(axis="x").points == single_site_cube.coord(axis="x").points
-    assert output_cube.coord(axis="y").points == single_site_cube.coord(axis="y").points
+    assert (
+        output_cube.coord(axis="x").points == single_point_cube.coord(axis="x").points
+    )
+    assert (
+        output_cube.coord(axis="y").points == single_point_cube.coord(axis="y").points
+    )
     assert output_cube.data == expected_distance
 
 
@@ -422,17 +426,21 @@ def test_distance_to_with_line_geometry(
 
     geometry = request.getfixturevalue(geometry_crs)
 
-    single_site_cube = request.getfixturevalue(
+    single_point_cube = request.getfixturevalue(
         f"single_{site_or_grid_point}_{location}"
     )
 
     output_cube = DistanceToFeature(target_projection, "distance_to_thing")(
-        single_site_cube, geometry
+        single_point_cube, geometry
     )
     assert output_cube.name() == "distance_to_thing"
     assert output_cube.units == "m"
-    assert output_cube.coord(axis="x").points == single_site_cube.coord(axis="x").points
-    assert output_cube.coord(axis="y").points == single_site_cube.coord(axis="y").points
+    assert (
+        output_cube.coord(axis="x").points == single_point_cube.coord(axis="x").points
+    )
+    assert (
+        output_cube.coord(axis="y").points == single_point_cube.coord(axis="y").points
+    )
     assert output_cube.data == expected_distance
 
 
@@ -491,17 +499,21 @@ def test_distance_to_with_polygon_geometry(
 
     geometry = request.getfixturevalue(geometry_crs)
 
-    single_site_cube = request.getfixturevalue(
+    single_point_cube = request.getfixturevalue(
         f"single_{site_or_grid_point}_{location}"
     )
 
     output_cube = DistanceToFeature(target_projection, "distance_to_thing")(
-        single_site_cube, geometry
+        single_point_cube, geometry
     )
     assert output_cube.name() == "distance_to_thing"
     assert output_cube.units == "m"
-    assert output_cube.coord(axis="x").points == single_site_cube.coord(axis="x").points
-    assert output_cube.coord(axis="y").points == single_site_cube.coord(axis="y").points
+    assert (
+        output_cube.coord(axis="x").points == single_point_cube.coord(axis="x").points
+    )
+    assert (
+        output_cube.coord(axis="y").points == single_point_cube.coord(axis="y").points
+    )
     assert output_cube.data == expected_distance
 
 
