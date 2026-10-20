@@ -180,7 +180,7 @@ def make_site_cube(latitudes, longitudes, name="rain_rate"):
 
 
 def make_grid_cube(domain_corner, name="rain_rate"):
-    """Make a site cube."""
+    """Make a gridded cube."""
 
     prob_cube = set_up_variable_cube(
         np.repeat(-9999, 1).reshape(1, 1),

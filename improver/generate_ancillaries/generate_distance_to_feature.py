@@ -203,14 +203,14 @@ class DistanceToFeature(BasePlugin):
             )
 
     def project_geometry(
-        self, geometry: GeoDataFrame, site_or_grid_cube: Cube
+        self, geometry: GeoDataFrame, input_cube: Cube
     ) -> Tuple[GeoSeries, GeoDataFrame]:
         """Project the geometry and site / grid cube to the target projection.
 
         Args:
             geometry:
                 The geometry to reproject.
-            site_or_grid_cube:
+            input_cube:
                 The cube containing the site / grid locations. It is assumed
                 that the site / grid coordinates are defined as latitude and
                 longitude on a WGS84 coordinate system (EPSG:4326).
@@ -220,12 +220,12 @@ class DistanceToFeature(BasePlugin):
         """
         import numpy as np
 
-        x_coords = site_or_grid_cube.coord(axis="x").points
-        y_coords = site_or_grid_cube.coord(axis="y").points
+        x_coords = input_cube.coord(axis="x").points
+        y_coords = input_cube.coord(axis="y").points
 
         # If a site cube - assumes site coordinates are defined as latitude and longitude
         # defaulting to an EPSG:4326 coordinate system, which is WGS84.
-        if self.is_site_cube(site_or_grid_cube):
+        if self.is_site_cube(input_cube):
             points_list = [Point(x, y) for x, y in zip(x_coords, y_coords)]
             points = GeoSeries(points_list, crs=4326)
         # Otherwise project the grid cube into the EPSG:4326 coordinate system
@@ -235,7 +235,7 @@ class DistanceToFeature(BasePlugin):
             self._grid_shape = y_grid.shape
             points_list = [Point(x, y) for x, y in zip(x_grid.ravel(), y_grid.ravel())]
             points = GeoSeries(
-                points_list, crs=site_or_grid_cube.coord_system().as_cartopy_crs()
+                points_list, crs=input_cube.coord_system().as_cartopy_crs()
             )
             points = points.to_crs(epsg=4326)
 
@@ -248,7 +248,7 @@ class DistanceToFeature(BasePlugin):
 
     def _apply_exclusion(
         self,
-        site_or_grid_coords: GeoSeries,
+        input_coords: GeoSeries,
         distance_results: List[int],
         exclude_outside_of: GeoDataFrame,
         exclusion_buffer: float,
@@ -259,7 +259,7 @@ class DistanceToFeature(BasePlugin):
         geometry.
 
         Args:
-            site_or_grid_coords:
+            input_coords:
                 A GeoSeries containing the projected site / grid coordinates.
             distance_results:
                 The calculated distances to the feature.
@@ -279,8 +279,8 @@ class DistanceToFeature(BasePlugin):
         exclusion_projection = exclude_outside_of.to_crs(self.epsg_projection)
 
         # Clip the provided geometry for performance
-        x_bounds = self.get_clip_values(site_or_grid_coords.x, exclusion_buffer)
-        y_bounds = self.get_clip_values(site_or_grid_coords.y, exclusion_buffer)
+        x_bounds = self.get_clip_values(input_coords.x, exclusion_buffer)
+        y_bounds = self.get_clip_values(input_coords.y, exclusion_buffer)
 
         try:
             clipped_exclusion = self.clip_geometry(
@@ -291,7 +291,7 @@ class DistanceToFeature(BasePlugin):
             return distance_results
 
         # Calculate distances to exclusion geometry to identify sites / grid points within it
-        distance_to_exclusion = self.distance_to(site_or_grid_coords, clipped_exclusion)
+        distance_to_exclusion = self.distance_to(input_coords, clipped_exclusion)
 
         # Convert to list for modification if needed
         distance_results_list = list(distance_results)
@@ -303,14 +303,12 @@ class DistanceToFeature(BasePlugin):
 
         return distance_results_list
 
-    def distance_to(
-        self, site_or_grid_points: GeoSeries, geometry: GeoDataFrame
-    ) -> List[int]:
+    def distance_to(self, input_points: GeoSeries, geometry: GeoDataFrame) -> List[int]:
         """Calculate the distance from each site / grid point to the nearest
         feature in the geometry.
 
         Args:
-            site_or_grid_points:
+            input_points:
                 A GeoSeries containing the site / grid points in the target projection.
             geometry:
                 A GeoDataFrame containing the geometry in the target projection.
@@ -339,13 +337,12 @@ class DistanceToFeature(BasePlugin):
 
             parallel = Parallel(n_jobs=self.n_parallel_jobs, prefer="threads")
             output_generator = parallel(
-                delayed(_distance_to_nearest)(point, geometry)
-                for point in site_or_grid_points
+                delayed(_distance_to_nearest)(point, geometry) for point in input_points
             )
             distance_results = list(output_generator)
         else:
             distance_results = [
-                _distance_to_nearest(point, geometry) for point in site_or_grid_points
+                _distance_to_nearest(point, geometry) for point in input_points
             ]
 
         return distance_results
