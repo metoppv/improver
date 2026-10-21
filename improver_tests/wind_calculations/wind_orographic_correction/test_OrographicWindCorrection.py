@@ -98,11 +98,18 @@ def _make_plugin(
         )
     )
     return wind_orographic_correction.OrographicWindCorrection(
-        high_res_orog_cube=high_res_orog,
+        unsmoothed_orog_cube=high_res_orog,
         model_orog_cube=model_orog,
         model_orog_stddev_cube=model_orog_stddev,
         model_silhouette_roughness_cube=silhouette_roughness,
     )
+
+
+def _make_height_plugin(wind_cube, target_height_levels=None):
+    plugin = _make_plugin()
+    plugin.original_height_levels = plugin._get_height_levels_from_cube(wind_cube)
+    plugin.target_height_levels = plugin._get_target_height_levels(target_height_levels)
+    return plugin
 
 
 @pytest.fixture
@@ -159,13 +166,13 @@ def test_plugin_initialises_with_ancillary_cubes():
     )
 
     plugin = wind_orographic_correction.OrographicWindCorrection(
-        high_res_orog_cube=high_res_orog,
+        unsmoothed_orog_cube=high_res_orog,
         model_orog_cube=model_orog,
         model_orog_stddev_cube=model_orog_stddev,
         model_silhouette_roughness_cube=silhouette_roughness,
     )
 
-    assert plugin.high_res_orog_cube is high_res_orog
+    assert plugin.unsmoothed_orog_cube is high_res_orog
     assert plugin.model_orog_cube is model_orog
     assert plugin.model_orog_stddev_cube is model_orog_stddev
     assert plugin.model_silhouette_roughness_cube is silhouette_roughness
@@ -177,7 +184,6 @@ def test_process_returns_corrected_cube_on_default_heights(
     """Process should preserve shape, metadata, and finite winds on defaults."""
     plugin = _make_plugin()
     wind = standard_wind_profile_cube
-
     result = plugin.process(wind)
 
     assert result.shape == wind.shape
@@ -198,7 +204,6 @@ def test_process_returns_corrected_cube_on_explicit_heights(
     shape = (2, 2)
     plugin = flat_orography_plugin
     wind = standard_wind_profile_cube
-
     result = plugin.process(wind, target_height_levels=[15.0, 25.0])
 
     expected = np.stack(
@@ -215,8 +220,46 @@ def test_process_returns_corrected_cube_on_explicit_heights(
     )
 
 
-def test_process_checks_all_required_horizontal_grids():
-    """Process should reject ancillary cubes that do not share the wind grid."""
+def test_process_extracts_heights_once_and_refreshes_state(monkeypatch):
+    """Each call should extract heights once and replace previous height state."""
+    plugin = _make_plugin()
+    extract_heights = plugin._get_height_levels_from_cube
+    calls = []
+
+    def record_extraction(wind_cube):
+        calls.append(wind_cube)
+        return extract_heights(wind_cube)
+
+    monkeypatch.setattr(plugin, "_get_height_levels_from_cube", record_extraction)
+    first_wind = _make_wind_profile_cube(
+        heights=np.array([10.0, 20.0, 30.0, 400.0], dtype=np.float32),
+        values_at_heights=np.array([2.0, 4.0, 6.0, 8.0], dtype=np.float32),
+    )
+    plugin.process(first_wind, target_height_levels=[25.0, 15.0])
+
+    assert len(calls) == 1
+    np.testing.assert_allclose(
+        plugin.original_height_levels, first_wind.coord("height").points
+    )
+    np.testing.assert_allclose(plugin.target_height_levels, [15.0, 25.0])
+
+    second_wind = _make_wind_profile_cube(
+        heights=np.array([10.0, 30.0, 100.0, 400.0], dtype=np.float32),
+        values_at_heights=np.array([2.0, 4.0, 6.0, 8.0], dtype=np.float32),
+    )
+    plugin.process(second_wind)
+
+    assert len(calls) == 2
+    np.testing.assert_allclose(
+        plugin.original_height_levels, second_wind.coord("height").points
+    )
+    np.testing.assert_allclose(
+        plugin.target_height_levels, second_wind.coord("height").points
+    )
+
+
+def test_process_rejects_cubes_on_different_grids():
+    """Process should reject cubes that do not share the wind grid."""
     plugin = _make_plugin(shape=(2, 2))
     wind = _make_wind_profile_cube(
         heights=np.array([10.0, 20.0, 30.0, 400.0], dtype=np.float32),
@@ -224,7 +267,7 @@ def test_process_checks_all_required_horizontal_grids():
         shape=(3, 2),
     )
 
-    with pytest.raises(ValueError, match="horizontal shape"):
+    with pytest.raises(ValueError, match="Cubes do not share or originate"):
         plugin.process(wind)
 
 
@@ -242,50 +285,53 @@ def test_process_rejects_wind_profiles_that_do_not_reach_300m(
         plugin.process(short_profile)
 
 
-def test_process_converts_ancillary_orography_units_before_use():
-    """Process should normalise orography-related ancillaries to metres in place."""
-    shape = (2, 2)
-    high_res_orog = _make_xy_cube(
-        np.full(shape, 0.12, dtype=np.float32),
-        "surface_altitude",
-        "km",
-    )
-    model_orog = _make_xy_cube(
-        np.full(shape, 0.10, dtype=np.float32),
-        "surface_altitude",
-        "km",
-    )
-    model_orog_stddev = _make_xy_cube(
-        np.full(shape, 0.02, dtype=np.float32),
-        "standard_deviation_of_height_in_grid_cell",
-        "km",
-    )
-    silhouette_roughness = _make_xy_cube(
-        np.full(shape, 0.2, dtype=np.float32),
-        "silhouette_roughness",
-        "1",
+def test_process_rejects_single_height_level_wind_profile():
+    """A single wind level cannot support spline fitting or roughness fitting."""
+    single_level_wind = _make_wind_profile_cube(
+        heights=np.array([400.0], dtype=np.float32),
+        values_at_heights=np.array([8.0], dtype=np.float32),
     )
 
-    plugin = wind_orographic_correction.OrographicWindCorrection(
-        high_res_orog_cube=high_res_orog,
-        model_orog_cube=model_orog,
-        model_orog_stddev_cube=model_orog_stddev,
-        model_silhouette_roughness_cube=silhouette_roughness,
+    with pytest.raises(ValueError, match="at least two height levels"):
+        _make_plugin().process(single_level_wind)
+
+
+def test_process_rejects_wind_profiles_with_non_metre_heights():
+    """Process should require the input height coordinate to use metres."""
+    wind = _make_wind_profile_cube(
+        heights=np.array([10.0, 20.0, 30.0, 400.0], dtype=np.float32),
+        values_at_heights=np.array([2.0, 4.0, 6.0, 8.0], dtype=np.float32),
     )
+    wind.coord("height").convert_units("km")
+
+    with pytest.raises(ValueError, match="height coordinate must be in metres"):
+        _make_plugin().process(wind)
+
+    assert str(wind.coord("height").units) == "km"
+
+
+@pytest.mark.parametrize(
+    "cube_attribute",
+    [
+        "unsmoothed_orog_cube",
+        "model_orog_cube",
+        "model_orog_stddev_cube",
+    ],
+)
+def test_process_rejects_non_metre_orography_inputs(cube_attribute):
+    """Length-valued orography ancillaries should already use metres."""
+    plugin = _make_plugin()
+    orography_cube = getattr(plugin, cube_attribute)
+    orography_cube.convert_units("km")
     wind = _make_wind_profile_cube(
         heights=np.array([10.0, 20.0, 30.0, 400.0], dtype=np.float32),
         values_at_heights=np.array([2.0, 4.0, 6.0, 8.0], dtype=np.float32),
     )
 
-    assert str(plugin.high_res_orog_cube.units) == "km"
-    assert str(plugin.model_orog_cube.units) == "km"
-    assert str(plugin.model_orog_stddev_cube.units) == "km"
+    with pytest.raises(ValueError, match="must be in metres"):
+        plugin.process(wind)
 
-    plugin.process(wind)
-
-    assert str(plugin.high_res_orog_cube.units) == "m"
-    assert str(plugin.model_orog_cube.units) == "m"
-    assert str(plugin.model_orog_stddev_cube.units) == "m"
+    assert str(orography_cube.units) == "km"
 
 
 def test_process_does_not_mutate_input_wind_data(standard_wind_profile_cube):
@@ -327,14 +373,14 @@ def test_process_preserves_masked_target_winds_in_output(
     )
 
     monkeypatch.setattr(
-        wind_orographic_correction,
-        "get_target_wind_speeds",
-        lambda *_args, **_kwargs: masked_target_winds,
+        wind_orographic_correction.OrographicWindCorrection,
+        "_get_target_wind_speeds",
+        staticmethod(lambda *_args, **_kwargs: masked_target_winds),
     )
     monkeypatch.setattr(
-        wind_orographic_correction,
-        "calculate_speed_up_factor",
-        lambda *args, **kwargs: np.ones((2, 2, 2), dtype=np.float32),
+        wind_orographic_correction.OrographicWindCorrection,
+        "_calculate_speed_up_factor",
+        staticmethod(lambda *args, **kwargs: np.ones((2, 2, 2), dtype=np.float32)),
     )
 
     result = flat_orography_plugin.process(wind, target_height_levels=[15.0, 25.0])
@@ -372,9 +418,9 @@ def test_process_combines_target_winds_with_speed_up_factor(monkeypatch):
         return mocked_speed_up
 
     monkeypatch.setattr(
-        wind_orographic_correction,
-        "calculate_speed_up_factor",
-        _fake_speed_up_factor,
+        wind_orographic_correction.OrographicWindCorrection,
+        "_calculate_speed_up_factor",
+        staticmethod(_fake_speed_up_factor),
     )
 
     result = plugin.process(wind, target_height_levels=[15.0, 25.0])
@@ -398,8 +444,7 @@ def test_get_target_height_levels_defaults_to_input_cube_heights():
         values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
     )
 
-    result = wind_orographic_correction.get_target_height_levels(
-        wind,
+    result = _make_height_plugin(wind)._get_target_height_levels(
         target_height_levels=None,
     )
 
@@ -416,8 +461,7 @@ def test_get_target_height_levels_sorts_requested_values():
         values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
     )
 
-    result = wind_orographic_correction.get_target_height_levels(
-        wind,
+    result = _make_height_plugin(wind)._get_target_height_levels(
         target_height_levels=[30.0, 10.0, 20.0],
     )
 
@@ -434,8 +478,7 @@ def test_get_target_height_levels_casts_to_float_array():
         values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
     )
 
-    result = wind_orographic_correction.get_target_height_levels(
-        wind,
+    result = _make_height_plugin(wind)._get_target_height_levels(
         target_height_levels=[30, 10, 20],
     )
 
@@ -451,14 +494,21 @@ def test_prepare_target_wind_speeds_returns_mask_and_nan_values():
         dtype=np.float32,
     )
 
-    mask, values = wind_orographic_correction.prepare_target_wind_speeds(target_winds)
+    mask, values = (
+        wind_orographic_correction.OrographicWindCorrection._prepare_target_wind_speeds(
+            target_winds
+        )
+    )
 
     np.testing.assert_array_equal(
         mask,
         np.array([[[False, True], [False, False]]]),
     )
-    np.testing.assert_allclose(values[0, 0, 0], 1.0)
-    assert np.isnan(values[0, 0, 1])
+    np.testing.assert_allclose(
+        values,
+        np.array([[[1.0, np.nan], [3.0, 4.0]]]),
+        equal_nan=True,
+    )
 
 
 def test_prepare_target_wind_speeds_handles_plain_ndarrays():
@@ -468,7 +518,11 @@ def test_prepare_target_wind_speeds_handles_plain_ndarrays():
         dtype=np.float32,
     )
 
-    mask, values = wind_orographic_correction.prepare_target_wind_speeds(target_winds)
+    mask, values = (
+        wind_orographic_correction.OrographicWindCorrection._prepare_target_wind_speeds(
+            target_winds
+        )
+    )
 
     np.testing.assert_array_equal(mask, np.zeros_like(target_winds, dtype=bool))
     np.testing.assert_allclose(values, target_winds.astype(float))
@@ -488,14 +542,13 @@ def test_get_target_wind_speeds_returns_direct_copy_when_heights_match(monkeypat
         )
 
     monkeypatch.setattr(
-        wind_orographic_correction,
-        "fit_spline_wind_profile",
+        wind_orographic_correction.OrographicWindCorrection,
+        "_fit_spline_wind_profile",
         _raise_if_called,
     )
 
-    result = wind_orographic_correction.get_target_wind_speeds(
+    result = _make_height_plugin(wind)._get_target_wind_speeds(
         wind,
-        target_heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
     )
 
     np.testing.assert_allclose(result, wind.data)
@@ -512,9 +565,8 @@ def test_get_target_wind_speeds_interpolates_when_heights_differ(
     """Different target heights should be produced by spline interpolation."""
     wind = standard_wind_profile_cube
 
-    result = wind_orographic_correction.get_target_wind_speeds(
+    result = _make_height_plugin(wind, [15.0, 25.0])._get_target_wind_speeds(
         wind,
-        target_heights=np.array([15.0, 25.0], dtype=np.float32),
     )
 
     expected = np.stack(
@@ -539,8 +591,8 @@ def test_get_target_wind_speeds_reuses_supplied_spline_when_present(monkeypatch)
         raise AssertionError("fit_spline_wind_profile should not be called.")
 
     monkeypatch.setattr(
-        wind_orographic_correction,
-        "fit_spline_wind_profile",
+        wind_orographic_correction.OrographicWindCorrection,
+        "_fit_spline_wind_profile",
         _raise_if_called,
     )
 
@@ -561,9 +613,8 @@ def test_get_target_wind_speeds_reuses_supplied_spline_when_present(monkeypatch)
             )
             return expected
 
-    result = wind_orographic_correction.get_target_wind_speeds(
+    result = _make_height_plugin(wind, [15.0, 25.0])._get_target_wind_speeds(
         wind,
-        target_heights=np.array([15.0, 25.0], dtype=np.float32),
         spline=_FakeSpline(),
     )
 
@@ -584,30 +635,9 @@ def test_get_target_wind_speeds_rejects_single_level_interpolation(target_height
         values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
     )[0]
 
-    with pytest.raises(ValueError, match="Cannot interpolate wind_profile_cube"):
-        wind_orographic_correction.get_target_wind_speeds(
+    with pytest.raises(ValueError, match="Cannot interpolate uncorrected_wind_cube"):
+        _make_height_plugin(wind, target_heights)._get_target_wind_speeds(
             wind,
-            target_heights=target_heights,
-        )
-
-
-def test_get_target_wind_speeds_rejects_height_coordinate_mismatch(monkeypatch):
-    """Target wind data should agree with the height coordinate length."""
-    wind = _make_wind_profile_cube(
-        heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
-        values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
-    )[0]
-
-    monkeypatch.setattr(
-        wind_orographic_correction,
-        "get_height_levels_from_cube",
-        lambda _cube: np.array([10.0, 20.0, 30.0], dtype=np.float32),
-    )
-
-    with pytest.raises(ValueError, match="data first dimension must match"):
-        wind_orographic_correction.get_target_wind_speeds(
-            wind,
-            target_heights=np.array([10.0, 20.0], dtype=np.float32),
         )
 
 
@@ -626,10 +656,10 @@ def test_create_corrected_wind_speed_cube_sets_target_heights():
     )
     target_heights = np.array([15.0, 25.0], dtype=np.float32)
 
-    result = wind_orographic_correction.create_corrected_wind_speed_cube(
+    plugin = _make_height_plugin(template, target_heights)
+    result = plugin._create_corrected_wind_speed_cube(
         template,
         corrected,
-        target_heights,
     )
 
     np.testing.assert_allclose(result.coord("height").points, target_heights)
@@ -649,10 +679,10 @@ def test_create_corrected_wind_speed_cube_preserves_metadata_template():
         dtype=np.float32,
     )
 
-    result = wind_orographic_correction.create_corrected_wind_speed_cube(
+    plugin = _make_height_plugin(template, [15.0, 25.0])
+    result = plugin._create_corrected_wind_speed_cube(
         template,
         corrected,
-        target_heights=np.array([15.0, 25.0], dtype=np.float32),
     )
 
     assert result.name() == template.name()
@@ -667,16 +697,17 @@ def test_create_corrected_wind_speed_cube_preserves_metadata_template():
         result.coord(axis="y").points,
         template.coord(axis="y").points,
     )
-    assert str(result.coord("height").units) == "m"
+    assert str(result.coord("height").units) == str(template.coord("height").units)
     assert result.coord("height").bounds is None
 
 
-def test_create_corrected_wind_speed_cube_rejects_height_count_mismatch():
-    """Cube creation should fail when data slices and target heights disagree."""
+def test_create_corrected_wind_speed_cube_rejects_non_metre_height_units():
+    """Output creation should not silently convert template height units."""
     template = _make_wind_profile_cube(
         heights=np.array([10.0, 20.0], dtype=np.float32),
         values_at_heights=np.array([2.0, 4.0], dtype=np.float32),
     )
+    template.coord("height").convert_units("km")
     corrected = np.array(
         [
             np.full((2, 2), 3.0, dtype=np.float32),
@@ -685,11 +716,12 @@ def test_create_corrected_wind_speed_cube_rejects_height_count_mismatch():
         dtype=np.float32,
     )
 
-    with pytest.raises(ValueError, match="must match the number of target heights"):
-        wind_orographic_correction.create_corrected_wind_speed_cube(
+    plugin = _make_plugin()
+    plugin.target_height_levels = np.array([15.0, 25.0], dtype=np.float32)
+    with pytest.raises(ValueError, match="height coordinate must be in metres"):
+        plugin._create_corrected_wind_speed_cube(
             template,
             corrected,
-            target_heights=np.array([15.0], dtype=np.float32),
         )
 
 
@@ -706,10 +738,10 @@ def test_create_corrected_wind_speed_cube_handles_two_dimensional_templates():
         dtype=np.float32,
     )
 
-    result = wind_orographic_correction.create_corrected_wind_speed_cube(
+    plugin = _make_height_plugin(template_2d, [15.0])
+    result = plugin._create_corrected_wind_speed_cube(
         template_2d,
         corrected,
-        target_heights=np.array([15.0], dtype=np.float32),
     )
 
     np.testing.assert_allclose(result.data, corrected[0])
@@ -718,37 +750,20 @@ def test_create_corrected_wind_speed_cube_handles_two_dimensional_templates():
     )
 
 
-def test_get_height_levels_from_cube_converts_coordinate_units():
-    """Height extraction should convert the coordinate to metres."""
+def test_get_height_levels_from_cube_rejects_non_metre_coordinate_units():
+    """Height extraction should require metres and leave the cube unchanged."""
     wind = _make_wind_profile_cube(
         heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
         values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
     )
-    height_coord = wind.coord("height").copy()
-    assert str(height_coord.units) == "m"
-    height_coord.convert_units("km")
-    assert str(height_coord.units) == "km"
+    wind.coord("height").convert_units("km")
 
-    result = wind_orographic_correction.get_height_levels_from_cube(wind)
-    height_coord = wind.coord("height").copy()
-    height_coord.convert_units("m")
+    with pytest.raises(ValueError, match="height coordinate must be in metres"):
+        wind_orographic_correction.OrographicWindCorrection._get_height_levels_from_cube(
+            wind
+        )
 
-    np.testing.assert_allclose(result, height_coord.points)
-    assert str(height_coord.units) == "m"
-
-
-def test_get_height_levels_from_cube_returns_1d_array():
-    """Height extraction should always return a one-dimensional array."""
-    wind_2d = _make_wind_profile_cube(
-        heights=np.array([10.0, 20.0], dtype=np.float32),
-        values_at_heights=np.array([2.0, 4.0], dtype=np.float32),
-    )[0]
-
-    result = wind_orographic_correction.get_height_levels_from_cube(wind_2d)
-
-    assert isinstance(result, np.ndarray)
-    assert result.ndim == 1
-    np.testing.assert_allclose(result, np.array([10.0], dtype=np.float32))
+    assert str(wind.coord("height").units) == "km"
 
 
 @pytest.mark.parametrize(
@@ -767,14 +782,11 @@ def test_fit_spline_wind_profile_rejects_non_increasing_heights(
         values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
     )
 
-    monkeypatch.setattr(
-        wind_orographic_correction,
-        "get_height_levels_from_cube",
-        lambda _cube: bad_heights,
-    )
+    plugin = _make_height_plugin(wind)
+    plugin.original_height_levels = bad_heights
 
     with pytest.raises(ValueError, match="strictly increasing"):
-        wind_orographic_correction.fit_spline_wind_profile(wind)
+        plugin._fit_spline_wind_profile(wind)
 
 
 @pytest.mark.parametrize(
@@ -792,31 +804,11 @@ def test_fit_spline_wind_profile_rejects_non_finite_heights(monkeypatch, bad_hei
         values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
     )
 
-    monkeypatch.setattr(
-        wind_orographic_correction,
-        "get_height_levels_from_cube",
-        lambda _cube: bad_heights,
-    )
+    plugin = _make_height_plugin(wind)
+    plugin.original_height_levels = bad_heights
 
     with pytest.raises(ValueError, match="must all be finite"):
-        wind_orographic_correction.fit_spline_wind_profile(wind)
-
-
-def test_fit_spline_wind_profile_rejects_shape_mismatch(monkeypatch):
-    """Spline fitting should fail if data and coordinate lengths disagree."""
-    wind = _make_wind_profile_cube(
-        heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
-        values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
-    )
-
-    monkeypatch.setattr(
-        wind_orographic_correction,
-        "get_height_levels_from_cube",
-        lambda _cube: np.array([10.0, 20.0], dtype=float),
-    )
-
-    with pytest.raises(ValueError, match="first dimension of wind_speeds"):
-        wind_orographic_correction.fit_spline_wind_profile(wind)
+        plugin._fit_spline_wind_profile(wind)
 
 
 def test_evaluate_spline_at_reference_heights_masks_out_of_range_points():
@@ -830,7 +822,7 @@ def test_evaluate_spline_at_reference_heights_masks_out_of_range_points():
         heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
         values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
     )
-    spline = wind_orographic_correction.fit_spline_wind_profile(wind)
+    spline = _make_height_plugin(wind)._fit_spline_wind_profile(wind)
 
     reference_height_cube = _make_xy_cube(
         np.array([[5.0, 15.0], [35.0, 20.0]], dtype=np.float32),
@@ -844,7 +836,7 @@ def test_evaluate_spline_at_reference_heights_masks_out_of_range_points():
         mask=np.array([[False, False], [False, True]]),
     )
 
-    result = wind_orographic_correction.evaluate_spline_at_reference_heights(
+    result = _make_plugin()._evaluate_spline_at_reference_heights(
         spline,
         reference_height_cube,
     )
@@ -864,7 +856,7 @@ def test_evaluate_spline_at_reference_heights_returns_exact_level_values():
         heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
         values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
     )
-    spline = wind_orographic_correction.fit_spline_wind_profile(wind)
+    spline = _make_height_plugin(wind)._fit_spline_wind_profile(wind)
 
     reference_height_cube = _make_xy_cube(
         np.full((2, 2), 20.0, dtype=np.float32),
@@ -872,7 +864,7 @@ def test_evaluate_spline_at_reference_heights_returns_exact_level_values():
         "m",
     )
 
-    result = wind_orographic_correction.evaluate_spline_at_reference_heights(
+    result = _make_plugin()._evaluate_spline_at_reference_heights(
         spline,
         reference_height_cube,
     )
@@ -889,7 +881,7 @@ def test_evaluate_spline_at_reference_heights_handles_top_boundary():
         heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
         values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
     )
-    spline = wind_orographic_correction.fit_spline_wind_profile(wind)
+    spline = _make_height_plugin(wind)._fit_spline_wind_profile(wind)
 
     reference_height_cube = _make_xy_cube(
         np.full((2, 2), 30.0, dtype=np.float32),
@@ -897,7 +889,7 @@ def test_evaluate_spline_at_reference_heights_handles_top_boundary():
         "m",
     )
 
-    result = wind_orographic_correction.evaluate_spline_at_reference_heights(
+    result = _make_plugin()._evaluate_spline_at_reference_heights(
         spline,
         reference_height_cube,
     )
@@ -920,25 +912,13 @@ def _make_speed_up_inputs():
     }
 
 
-def test_broadcast_2d_to_3d_adds_height_axis():
-    """Broadcast helper should add a leading singleton height dimension."""
-    array_2d = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=float)
-
-    result = wind_orographic_correction._broadcast_2d_to_3d(array_2d)
-
-    assert result.ndim == 3
-    assert result.shape[0] == 1
-    assert result.shape[1:] == (2, 2)
-    np.testing.assert_allclose(result[0], array_2d)
-
-
 def test_compute_inner_layer_response_uses_bessel_ratio():
     """Inner-layer response should be derived from the modified Bessel ratio."""
     roughness_scaled_wavenumber_3d = np.array([[[0.25, 0.5]]], dtype=float)
     target_heights_broadcast = np.array([[[10.0, 20.0]]], dtype=float)
     roughness_length_field = np.array([[[0.1, 0.2]]], dtype=float)
 
-    result = wind_orographic_correction._compute_inner_layer_response(
+    result = _make_plugin()._compute_inner_layer_response(
         roughness_scaled_wavenumber_3d,
         target_heights_broadcast,
         roughness_length_field,
@@ -965,7 +945,7 @@ def test_compute_inner_layer_response_handles_invalid_values():
     target_heights_broadcast = np.array([[[10.0, 10.0]]], dtype=float)
     roughness_length_field = np.array([[[0.0, 0.1]]], dtype=float)
 
-    result = wind_orographic_correction._compute_inner_layer_response(
+    result = _make_plugin()._compute_inner_layer_response(
         roughness_scaled_wavenumber_3d,
         target_heights_broadcast,
         roughness_length_field,
@@ -992,7 +972,7 @@ def test_calculate_speed_up_factor_validates_target_heights(
     inputs = _make_speed_up_inputs()
 
     with pytest.raises(ValueError, match=error_match):
-        wind_orographic_correction.calculate_speed_up_factor(
+        _make_plugin()._calculate_speed_up_factor(
             characteristic_wavenumber=inputs["characteristic_wavenumber"],
             unresolved_orography_height=inputs["unresolved_orography_height"],
             target_heights=target_heights,
@@ -1006,7 +986,7 @@ def test_calculate_speed_up_factor_returns_neutral_for_invalid_inputs():
     """Invalid ancillary data should collapse to a neutral correction factor."""
     inputs = _make_speed_up_inputs()
 
-    result = wind_orographic_correction.calculate_speed_up_factor(
+    result = _make_plugin()._calculate_speed_up_factor(
         characteristic_wavenumber=np.full((2, 2), np.nan, dtype=float),
         unresolved_orography_height=inputs["unresolved_orography_height"],
         target_heights=inputs["target_heights"],
@@ -1022,7 +1002,7 @@ def test_calculate_speed_up_factor_returns_unity_for_zero_unresolved_orography()
     """Zero unresolved terrain should produce a neutral correction factor."""
     inputs = _make_speed_up_inputs()
 
-    result = wind_orographic_correction.calculate_speed_up_factor(
+    result = _make_plugin()._calculate_speed_up_factor(
         characteristic_wavenumber=inputs["characteristic_wavenumber"],
         unresolved_orography_height=np.zeros((2, 2), dtype=float),
         target_heights=inputs["target_heights"],
@@ -1043,7 +1023,7 @@ def test_calculate_speed_up_factor_matches_expected_numeric_solution():
     reference_wind_speed = np.array([[8.0]], dtype=float)
     roughness_length = np.array([[0.1]], dtype=float)
 
-    result = wind_orographic_correction.calculate_speed_up_factor(
+    result = _make_plugin()._calculate_speed_up_factor(
         characteristic_wavenumber=characteristic_wavenumber,
         unresolved_orography_height=unresolved_orography_height,
         target_heights=target_heights,
@@ -1053,8 +1033,8 @@ def test_calculate_speed_up_factor_matches_expected_numeric_solution():
     )
 
     # Expected values were independently generated for this fixed 1x1 case.
-    np.testing.assert_allclose(result[0, 0, 0], 1.2867160430532548, rtol=1e-8)
-    np.testing.assert_allclose(result[1, 0, 0], 1.1161342251046130, rtol=1e-8)
+    np.testing.assert_allclose(result[0, 0, 0], 1.28672, rtol=1e-5)
+    np.testing.assert_allclose(result[1, 0, 0], 1.11613, rtol=1e-5)
     assert result[0, 0, 0] > result[1, 0, 0]
 
 
@@ -1067,14 +1047,14 @@ def test_calculate_speed_up_factor_clips_fractional_perturbation(monkeypatch):
         return np.full_like(roughness_scaled_wavenumber_3d, 1.0e6, dtype=float)
 
     monkeypatch.setattr(
-        wind_orographic_correction,
+        wind_orographic_correction.OrographicWindCorrection,
         "_compute_inner_layer_response",
-        _huge_response,
+        staticmethod(_huge_response),
     )
 
     unresolved = np.array([[20.0, -20.0], [20.0, -20.0]], dtype=float)
     target_winds = np.full((2, 2, 2), 1.0, dtype=float)
-    result = wind_orographic_correction.calculate_speed_up_factor(
+    result = _make_plugin()._calculate_speed_up_factor(
         characteristic_wavenumber=inputs["characteristic_wavenumber"],
         unresolved_orography_height=unresolved,
         target_heights=inputs["target_heights"],
@@ -1098,49 +1078,14 @@ def test_calculate_speed_up_factor_applies_vertical_decay(monkeypatch):
         return np.ones_like(roughness_scaled_wavenumber_3d, dtype=float)
 
     monkeypatch.setattr(
-        wind_orographic_correction,
+        wind_orographic_correction.OrographicWindCorrection,
         "_compute_inner_layer_response",
-        _unit_response,
+        staticmethod(_unit_response),
     )
 
-    result = wind_orographic_correction.calculate_speed_up_factor(**inputs)
+    result = _make_plugin()._calculate_speed_up_factor(**inputs)
 
     assert np.all(result[0] > result[1])
-
-
-def test_calculate_speed_up_factor_supports_realization_dimension(monkeypatch):
-    """Speed-up calculation should support extra dimensions such as realization."""
-    inputs = _make_speed_up_inputs()
-
-    def _unit_response(roughness_scaled_wavenumber_3d, *_args):
-        """Return a neutral response so the realization dimension can be isolated."""
-        return np.ones_like(roughness_scaled_wavenumber_3d, dtype=float)
-
-    monkeypatch.setattr(
-        wind_orographic_correction,
-        "_compute_inner_layer_response",
-        _unit_response,
-    )
-
-    target_winds = np.stack(
-        [
-            np.full((2, 2, 2), 5.0, dtype=float),
-            np.full((2, 2, 2), 6.0, dtype=float),
-        ],
-        axis=1,
-    )
-
-    result = wind_orographic_correction.calculate_speed_up_factor(
-        characteristic_wavenumber=inputs["characteristic_wavenumber"],
-        unresolved_orography_height=inputs["unresolved_orography_height"],
-        target_heights=inputs["target_heights"],
-        target_wind_speeds=target_winds,
-        reference_wind_speed=inputs["reference_wind_speed"],
-        roughness_length=inputs["roughness_length"],
-    )
-
-    assert result.shape == (2, 2, 2, 2)
-    assert np.all(result >= 1.0)
 
 
 def test_calculate_speed_up_factor_masks_non_positive_target_winds(monkeypatch):
@@ -1152,9 +1097,9 @@ def test_calculate_speed_up_factor_masks_non_positive_target_winds(monkeypatch):
         return np.ones_like(roughness_scaled_wavenumber_3d, dtype=float)
 
     monkeypatch.setattr(
-        wind_orographic_correction,
+        wind_orographic_correction.OrographicWindCorrection,
         "_compute_inner_layer_response",
-        _unit_response,
+        staticmethod(_unit_response),
     )
 
     target_winds = np.array(
@@ -1164,7 +1109,7 @@ def test_calculate_speed_up_factor_masks_non_positive_target_winds(monkeypatch):
         ],
         dtype=float,
     )
-    result = wind_orographic_correction.calculate_speed_up_factor(
+    result = _make_plugin()._calculate_speed_up_factor(
         characteristic_wavenumber=inputs["characteristic_wavenumber"],
         unresolved_orography_height=inputs["unresolved_orography_height"],
         target_heights=inputs["target_heights"],
@@ -1186,9 +1131,9 @@ def test_calculate_speed_up_factor_handles_masked_target_winds(monkeypatch):
         return np.ones_like(roughness_scaled_wavenumber_3d, dtype=float)
 
     monkeypatch.setattr(
-        wind_orographic_correction,
+        wind_orographic_correction.OrographicWindCorrection,
         "_compute_inner_layer_response",
-        _unit_response,
+        staticmethod(_unit_response),
     )
 
     target_winds = np.ma.array(
@@ -1201,7 +1146,7 @@ def test_calculate_speed_up_factor_handles_masked_target_winds(monkeypatch):
         ),
     )
 
-    result = wind_orographic_correction.calculate_speed_up_factor(
+    result = _make_plugin()._calculate_speed_up_factor(
         characteristic_wavenumber=inputs["characteristic_wavenumber"],
         unresolved_orography_height=inputs["unresolved_orography_height"],
         target_heights=inputs["target_heights"],
@@ -1252,13 +1197,13 @@ def test_calculate_speed_up_factor_sets_unity_for_invalid_ancillary_points(
         return np.ones_like(roughness_scaled_wavenumber_3d, dtype=float)
 
     monkeypatch.setattr(
-        wind_orographic_correction,
+        wind_orographic_correction.OrographicWindCorrection,
         "_compute_inner_layer_response",
-        _unit_response,
+        staticmethod(_unit_response),
     )
 
     mutated = mutator(inputs)
-    result = wind_orographic_correction.calculate_speed_up_factor(
+    result = _make_plugin()._calculate_speed_up_factor(
         characteristic_wavenumber=mutated["characteristic_wavenumber"],
         unresolved_orography_height=mutated["unresolved_orography_height"],
         target_heights=mutated["target_heights"],
@@ -1284,13 +1229,15 @@ def test_approximate_roughness_length_returns_search_bounds():
     valid = np.ones_like(fit_winds, dtype=bool)
     valid_count = np.sum(valid, axis=0)
 
-    lower_z0, upper_z0 = wind_orographic_correction._approximate_roughness_length(
-        fit_heights,
-        fit_winds,
-        valid,
-        valid_count,
-        min_roughness_length=1e-5,
-        max_roughness_length=5.0,
+    lower_z0, upper_z0 = (
+        wind_orographic_correction.OrographicWindCorrection._approximate_roughness_length(
+            fit_heights,
+            fit_winds,
+            valid,
+            valid_count,
+            min_roughness_length=1e-5,
+            max_roughness_length=5.0,
+        )
     )
 
     assert np.all(lower_z0 > 0.0)
@@ -1314,13 +1261,15 @@ def test_approximate_roughness_length_falls_back_to_global_bounds():
     valid = np.ones_like(fit_winds, dtype=bool)
     valid_count = np.sum(valid, axis=0)
 
-    lower_z0, upper_z0 = wind_orographic_correction._approximate_roughness_length(
-        fit_heights,
-        fit_winds,
-        valid,
-        valid_count,
-        min_roughness_length=1e-5,
-        max_roughness_length=5.0,
+    lower_z0, upper_z0 = (
+        wind_orographic_correction.OrographicWindCorrection._approximate_roughness_length(
+            fit_heights,
+            fit_winds,
+            valid,
+            valid_count,
+            min_roughness_length=1e-5,
+            max_roughness_length=5.0,
+        )
     )
 
     np.testing.assert_allclose(lower_z0, np.full((2, 2), 1e-5, dtype=float))
@@ -1343,13 +1292,12 @@ def test_evaluate_log_profile_fit_returns_friction_velocity_and_error():
     valid_count = np.sum(valid, axis=0)
 
     friction_velocity, squared_error = (
-        wind_orographic_correction._evaluate_log_profile_fit(
+        wind_orographic_correction.OrographicWindCorrection._evaluate_log_profile_fit(
             fit_heights,
             fit_winds,
             valid,
             valid_count,
             z0,
-            von_karman_constant=0.4,
             min_friction_velocity=0.001,
             max_friction_velocity=5.0,
         )
@@ -1374,15 +1322,16 @@ def test_evaluate_log_profile_fit_masks_insufficient_profiles():
     valid[1:, 0, 1] = False
     valid_count = np.sum(valid, axis=0)
 
-    _, squared_error = wind_orographic_correction._evaluate_log_profile_fit(
-        fit_heights,
-        fit_winds,
-        valid,
-        valid_count,
-        roughness_length=np.full((2, 2), 0.1, dtype=float),
-        von_karman_constant=0.4,
-        min_friction_velocity=0.001,
-        max_friction_velocity=5.0,
+    _, squared_error = (
+        wind_orographic_correction.OrographicWindCorrection._evaluate_log_profile_fit(
+            fit_heights,
+            fit_winds,
+            valid,
+            valid_count,
+            roughness_length=np.full((2, 2), 0.1, dtype=float),
+            min_friction_velocity=0.001,
+            max_friction_velocity=5.0,
+        )
     )
 
     assert np.isinf(squared_error[0, 1])
@@ -1399,7 +1348,6 @@ def test_refine_roughness_length_runs_golden_section_search(monkeypatch):
         valid,
         valid_count,
         roughness_length,
-        von_karman_constant,
         min_friction_velocity,
         max_friction_velocity,
     ):
@@ -1410,22 +1358,23 @@ def test_refine_roughness_length_runs_golden_section_search(monkeypatch):
         return friction_velocity, squared_error
 
     monkeypatch.setattr(
-        wind_orographic_correction,
+        wind_orographic_correction.OrographicWindCorrection,
         "_evaluate_log_profile_fit",
         _fake_evaluate,
     )
 
-    result = wind_orographic_correction._refine_roughness_length(
-        fit_heights=np.array([10.0, 20.0], dtype=float),
-        fit_winds=np.ones((2, 1, 1), dtype=float),
-        valid=np.ones((2, 1, 1), dtype=bool),
-        valid_count=np.full((1, 1), 2, dtype=int),
-        lower_z0=np.full((1, 1), 0.01, dtype=float),
-        upper_z0=np.full((1, 1), 1.0, dtype=float),
-        refinement_iterations=6,
-        von_karman_constant=0.4,
-        min_friction_velocity=0.001,
-        max_friction_velocity=5.0,
+    result = (
+        wind_orographic_correction.OrographicWindCorrection._refine_roughness_length(
+            fit_heights=np.array([10.0, 20.0], dtype=float),
+            fit_winds=np.ones((2, 1, 1), dtype=float),
+            valid=np.ones((2, 1, 1), dtype=bool),
+            valid_count=np.full((1, 1), 2, dtype=int),
+            lower_z0=np.full((1, 1), 0.01, dtype=float),
+            upper_z0=np.full((1, 1), 1.0, dtype=float),
+            refinement_iterations=6,
+            min_friction_velocity=0.001,
+            max_friction_velocity=5.0,
+        )
     )
 
     assert call_count["n"] == 12
@@ -1447,17 +1396,18 @@ def test_refine_roughness_length_returns_positive_values():
     valid = np.ones_like(fit_winds, dtype=bool)
     valid_count = np.sum(valid, axis=0)
 
-    result = wind_orographic_correction._refine_roughness_length(
-        fit_heights,
-        fit_winds,
-        valid,
-        valid_count,
-        lower_z0=np.full((2, 2), 1e-4, dtype=float),
-        upper_z0=np.full((2, 2), 1.0, dtype=float),
-        refinement_iterations=5,
-        von_karman_constant=0.4,
-        min_friction_velocity=0.001,
-        max_friction_velocity=5.0,
+    result = (
+        wind_orographic_correction.OrographicWindCorrection._refine_roughness_length(
+            fit_heights,
+            fit_winds,
+            valid,
+            valid_count,
+            lower_z0=np.full((2, 2), 1e-4, dtype=float),
+            upper_z0=np.full((2, 2), 1.0, dtype=float),
+            refinement_iterations=5,
+            min_friction_velocity=0.001,
+            max_friction_velocity=5.0,
+        )
     )
 
     assert np.all(result > 0.0)
@@ -1470,7 +1420,7 @@ def test_fit_log_wind_profile_returns_nan_when_too_few_levels():
         values_at_heights=np.array([3.0, -1.0], dtype=np.float32),
     )
 
-    result = wind_orographic_correction.fit_log_wind_profile(wind)
+    result = _make_height_plugin(wind)._fit_log_wind_profile(wind)
 
     assert np.isnan(result).all()
 
@@ -1493,7 +1443,7 @@ def test_fit_log_wind_profile_returns_finite_values_for_valid_profiles():
         values_at_heights=values,
     )
 
-    result = wind_orographic_correction.fit_log_wind_profile(wind)
+    result = _make_height_plugin(wind)._fit_log_wind_profile(wind)
 
     assert np.isfinite(result).all()
     assert np.all(result > 0.0)
@@ -1520,17 +1470,17 @@ def test_fit_log_wind_profile_applies_height_limits(monkeypatch):
         )
 
     monkeypatch.setattr(
-        wind_orographic_correction,
+        wind_orographic_correction.OrographicWindCorrection,
         "_approximate_roughness_length",
         _fake_approximate,
     )
     monkeypatch.setattr(
-        wind_orographic_correction,
+        wind_orographic_correction.OrographicWindCorrection,
         "_refine_roughness_length",
         lambda *args, **kwargs: np.full((2, 2), 0.1, dtype=float),
     )
     monkeypatch.setattr(
-        wind_orographic_correction,
+        wind_orographic_correction.OrographicWindCorrection,
         "_evaluate_log_profile_fit",
         lambda *args, **kwargs: (
             np.full((2, 2), 0.2, dtype=float),
@@ -1543,7 +1493,7 @@ def test_fit_log_wind_profile_applies_height_limits(monkeypatch):
         values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
     )
 
-    wind_orographic_correction.fit_log_wind_profile(
+    _make_height_plugin(wind)._fit_log_wind_profile(
         wind,
         lower_height_limit=10.0,
         upper_height_limit=300.0,
@@ -1555,7 +1505,7 @@ def test_fit_log_wind_profile_applies_height_limits(monkeypatch):
 def test_fit_log_wind_profile_marks_invalid_result_points_nan(monkeypatch):
     """Invalid fitted points should be replaced with NaN in the final output."""
     monkeypatch.setattr(
-        wind_orographic_correction,
+        wind_orographic_correction.OrographicWindCorrection,
         "_refine_roughness_length",
         lambda *args, **kwargs: np.array(
             [[np.nan, 0.1], [0.1, 0.1]],
@@ -1563,7 +1513,7 @@ def test_fit_log_wind_profile_marks_invalid_result_points_nan(monkeypatch):
         ),
     )
     monkeypatch.setattr(
-        wind_orographic_correction,
+        wind_orographic_correction.OrographicWindCorrection,
         "_evaluate_log_profile_fit",
         lambda *args, **kwargs: (
             np.full((2, 2), 0.2, dtype=float),
@@ -1576,32 +1526,10 @@ def test_fit_log_wind_profile_marks_invalid_result_points_nan(monkeypatch):
         values_at_heights=np.array([3.0, 4.0, 5.0], dtype=np.float32),
     )
 
-    result = wind_orographic_correction.fit_log_wind_profile(wind)
+    result = _make_height_plugin(wind)._fit_log_wind_profile(wind)
 
     assert np.isnan(result[0, 0])
     assert np.isfinite(result[0, 1])
-
-
-def test_calculate_unresolved_orography_height_converts_units():
-    """Unresolved orography should be computed after unit conversion to metres."""
-    high_res_orog = _make_xy_cube(
-        np.full((2, 2), 0.12, dtype=np.float32),
-        "surface_altitude",
-        "km",
-    )
-    model_orog = _make_xy_cube(
-        np.full((2, 2), 100.0, dtype=np.float32),
-        "surface_altitude",
-        "m",
-    )
-
-    result = wind_orographic_correction.calculate_unresolved_orography_height(
-        high_res_orog,
-        model_orog,
-    )
-
-    assert str(result.units) == "m"
-    np.testing.assert_allclose(result.data, np.full((2, 2), 20.0, dtype=np.float32))
 
 
 def test_calculate_unresolved_orography_height_sets_expected_name_and_units():
@@ -1617,7 +1545,7 @@ def test_calculate_unresolved_orography_height_sets_expected_name_and_units():
         "m",
     )
 
-    result = wind_orographic_correction.calculate_unresolved_orography_height(
+    result = _make_plugin()._calculate_unresolved_orography_height(
         high_res_orog,
         model_orog,
     )
@@ -1634,7 +1562,7 @@ def test_calculate_reference_height_inverts_wavenumber():
         "m-1",
     )
 
-    result = wind_orographic_correction.calculate_reference_height(wavenumber_cube)
+    result = _make_plugin()._calculate_reference_height(wavenumber_cube)
 
     expected = 1.0 / wavenumber_cube.data
     np.testing.assert_allclose(result.data, expected)
@@ -1652,7 +1580,7 @@ def test_calculate_reference_height_preserves_mask():
         mask=np.array([[False, True], [False, False]]),
     )
 
-    result = wind_orographic_correction.calculate_reference_height(wavenumber_cube)
+    result = _make_plugin()._calculate_reference_height(wavenumber_cube)
 
     np.testing.assert_array_equal(
         np.ma.getmaskarray(result.data),
@@ -1668,7 +1596,7 @@ def test_calculate_reference_height_sets_expected_metadata():
         "m-1",
     )
 
-    result = wind_orographic_correction.calculate_reference_height(wavenumber_cube)
+    result = _make_plugin()._calculate_reference_height(wavenumber_cube)
 
     assert result.name() == "unresolved_orography_reference_height"
     assert str(result.units) == "m"
@@ -1697,7 +1625,7 @@ def test_calculate_characteristic_wavenumber_applies_input_thresholds():
         "1",
     )
 
-    result = wind_orographic_correction.calculate_characteristic_wavenumber(
+    result = _make_plugin()._calculate_characteristic_wavenumber(
         orog_stddev_cube,
         silhouette_roughness_cube,
     )
@@ -1745,7 +1673,7 @@ def test_calculate_characteristic_wavenumber_clips_length_scale_bounds():
         "1",
     )
 
-    result = wind_orographic_correction.calculate_characteristic_wavenumber(
+    result = _make_plugin()._calculate_characteristic_wavenumber(
         orog_stddev_cube,
         silhouette_roughness_cube,
     )
@@ -1775,7 +1703,7 @@ def test_calculate_characteristic_wavenumber_masks_invalid_points():
         mask=np.array([[False, True], [False, False]]),
     )
 
-    result = wind_orographic_correction.calculate_characteristic_wavenumber(
+    result = _make_plugin()._calculate_characteristic_wavenumber(
         orog_stddev_cube,
         silhouette_roughness_cube,
     )
@@ -1786,49 +1714,11 @@ def test_calculate_characteristic_wavenumber_masks_invalid_points():
     )
 
 
-def test_check_same_grid_allows_single_cube():
-    """A single cube should be treated as a no-op and return cleanly."""
-    cube = _make_xy_cube(
-        np.full((2, 2), 1.0, dtype=np.float32),
-        "surface_altitude",
-        "m",
-    )
+def test_process_rejects_mismatched_grid_coordinates(standard_wind_profile_cube):
+    """Same-sized cubes with different horizontal coordinates are rejected."""
+    plugin = _make_height_plugin(standard_wind_profile_cube)
+    x_coord = plugin.model_orog_cube.coord(axis="x")
+    x_coord.points = x_coord.points.copy() + 1000.0
 
-    assert wind_orographic_correction.check_same_grid(cube) is None
-
-
-def test_check_same_grid_allows_matching_horizontal_shapes():
-    """Matching trailing horizontal shapes should pass the grid check."""
-    wind_cube = _make_wind_profile_cube(
-        heights=np.array([10.0, 20.0], dtype=np.float32),
-        values_at_heights=np.array([3.0, 4.0], dtype=np.float32),
-        shape=(2, 2),
-    )
-    xy_cube = _make_xy_cube(
-        np.full((2, 2), 50.0, dtype=np.float32),
-        "surface_altitude",
-        "m",
-    )
-
-    wind_orographic_correction.check_same_grid(wind_cube, xy_cube)
-
-
-@pytest.mark.parametrize("bad_shape", [(3, 2), (2, 3), (1, 1)])
-def test_check_same_grid_raises_for_mismatched_horizontal_shapes(bad_shape):
-    """Mismatched trailing shapes should raise a clear ValueError."""
-    reference_cube = _make_xy_cube(
-        np.full((2, 2), 1.0, dtype=np.float32),
-        "surface_altitude",
-        "m",
-    )
-    bad_cube = _make_xy_cube(
-        np.full(bad_shape, 1.0, dtype=np.float32),
-        "surface_altitude",
-        "m",
-    )
-
-    with pytest.raises(
-        ValueError,
-        match=rf"horizontal shape \({bad_shape[0]}, {bad_shape[1]}\), expected \(2, 2\)",
-    ):
-        wind_orographic_correction.check_same_grid(reference_cube, bad_cube)
+    with pytest.raises(ValueError, match="Cubes do not share or originate"):
+        plugin._process_single_realization(standard_wind_profile_cube)

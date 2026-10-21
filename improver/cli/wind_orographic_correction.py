@@ -3,7 +3,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Script to apply unresolved-orography wind corrections."""
+"""Script to interpolate wind speeds and apply unresolved-orography correction."""
 
 from improver import cli
 
@@ -11,86 +11,110 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    wind_profile_cube: cli.inputcube,
-    high_res_orog_cube: cli.inputcube,
+    uncorrected_wind_cube: cli.inputcube,
+    unsmoothed_orog_cube: cli.inputcube,
     model_orog_cube: cli.inputcube,
     model_orog_stddev_cube: cli.inputcube,
     model_silhouette_roughness_cube: cli.inputcube,
     *,
     target_height_levels: cli.comma_separated_list = None,
 ):
-    """Apply an unresolved-orography wind-speed correction to a profile cube.
+    """Interpolate wind speeds to target height levels (if provided) and adjust
+    using a terrain-induced speed-up factor derived from unresolved-orography
+    ancillaries.
 
-    This command fits a vertical wind-speed profile from ``wind_profile_cube``
-    and applies the resulting unresolved-orography correction to the same
-    wind field. The input cube is therefore used both for the profile fit and
-    the corrected output.
+    The input ``uncorrected_wind_cube`` must include height levels from the
+    surface up to at least 300 m above ground level, as this lower profile is
+    used to estimate the surface roughness.
+
+    For ensemble input, each realization is corrected independently.
 
     Args:
-        wind_profile_cube:
-            Wind-speed cube containing the profile to fit and the field to
-            correct. It should include wind speeds from 0 to (at least) 300 m
-            above ground level, as these heights are used for the logarithmic
-            profile used to estimate the effective surface roughness.
+        uncorrected_wind_cube:
+            Cube containing the uncorrected wind-speed forecast on height
+            levels. The levels must span 0 m to at least 300 m above ground
+            level, since the lower profile is used to estimate effective
+            surface roughness. Its height coordinate must be in metres.
 
-        high_res_orog_cube:
-            High-resolution orography cube.
+        unsmoothed_orog_cube:
+            Cube containing the unsmoothed (i.e. true) orography, in metres.
+            This cube should be on the same grid as ``model_orog_cube``.
 
         model_orog_cube:
-            Model-resolution orography cube.
+            Cube containing the smoothed (i.e. NWP model representation of)
+            orography, in metres.
 
         model_orog_stddev_cube:
-            Sub-grid orography standard deviation cube.
+            Cube containing the sub-grid orography standard deviation, in
+            metres. This cube should be on the same grid as ``model_orog_cube``.
 
         model_silhouette_roughness_cube:
-            Sub-grid silhouette roughness cube.
+            Cube containing the dimensionless sub-grid silhouette roughness.
+            This cube should be on the same grid as ``model_orog_cube``.
 
         target_height_levels:
-            Comma-separated list of target heights above ground level, in
-            metres. If omitted, the correction is applied at the heights
-            already present on ``wind_profile_cube``. Values may be supplied as
-            a comma-separated string, a Python list, or the literal ``None``;
-            these are converted to a list of floating-point heights before the
-            plugin is called.
+            Optional target heights in metres. If omitted, the heights
+            already present on ``uncorrected_wind_cube`` are used.
+
+    Note:
+        All orography inputs must be provided on grids consistent with the
+        forecast data. If the forecast and model orography data have been
+        re-gridded from their native NWP model grid (e.g. using StaGE), the
+        ancillary inputs should also be re-gridded to the same grid. The
+        orography and standard-deviation cubes must use metres; silhouette
+        roughness is dimensionless.
 
     Returns:
         iris.cube.Cube:
-            Corrected wind-speed cube on the selected target heights.
+            Wind-speed cube after unresolved-orography correction on the
+            selected target heights.
     """
     from improver.wind_calculations.wind_orographic_correction import (
         OrographicWindCorrection,
     )
 
-    if target_height_levels is None:
-        parsed_target_height_levels = None
-    elif isinstance(target_height_levels, list):
-        if (
-            len(target_height_levels) == 1
-            and str(target_height_levels[0]).lower() == "none"
-        ):
-            parsed_target_height_levels = None
-        else:
-            parsed_target_height_levels = [
-                float(value) for value in target_height_levels
-            ]
-    elif isinstance(target_height_levels, str):
-        if target_height_levels.lower() == "none":
-            parsed_target_height_levels = None
-        else:
-            parsed_target_height_levels = [
-                float(value) for value in target_height_levels.split(",")
-            ]
-    else:
-        parsed_target_height_levels = target_height_levels
-
     plugin = OrographicWindCorrection(
-        high_res_orog_cube,
+        unsmoothed_orog_cube,
         model_orog_cube,
         model_orog_stddev_cube,
         model_silhouette_roughness_cube,
     )
 
     return plugin(
-        wind_profile_cube,
-        target_height_levels=parsed_target_height_levels,
+        uncorrected_wind_cube,
+        target_height_levels=_parse_target_height_levels(target_height_levels),
     )
+
+
+def _parse_target_height_levels(
+    target_height_levels: list[float | str] | str | None,
+) -> list[float] | None:
+    """Convert CLI target height levels to a list of floats.
+
+    Args:
+        target_height_levels:
+            Target heights above ground level, in metres, specified as a list
+            of numbers or numeric strings, or a comma-separated string.
+            ``None``, the case-insensitive string ``"none"``, or a list
+            containing only that string selects the input cube heights.
+
+    Returns:
+        list[float] | None:
+            Target heights as floats, or ``None`` to use the input cube heights.
+    """
+    if target_height_levels is None:
+        return None
+
+    if isinstance(target_height_levels, str):
+        if target_height_levels.lower() == "none":
+            return None
+        values = target_height_levels.split(",")
+    else:
+        if (
+            len(target_height_levels) == 1
+            and str(target_height_levels[0]).lower() == "none"
+        ):
+            return None
+        values = target_height_levels
+
+    return [float(value) for value in values]
