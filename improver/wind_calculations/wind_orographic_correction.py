@@ -399,10 +399,7 @@ class OrographicWindCorrection(BasePlugin):
         if not height_dims:
             template_2d = template_cube
         else:
-            height_dim = height_dims[0]
-            index = [slice(None)] * template_cube.ndim
-            index[height_dim] = 0
-            template_2d = template_cube[tuple(index)]
+            template_2d = next(template_cube.slices_over("height"))
 
         output_cubes = CubeList()
 

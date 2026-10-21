@@ -61,69 +61,67 @@ def _kgo_path(kgo_dir, filename):
 
 
 @pytest.mark.slow
-def test_basic(tmp_path):
-    """Test unresolved-orography correction with default target heights."""
-    kgo_dir = _no_realizations_dir()
-    kgo_path = _kgo_path(kgo_dir, KGO_DEFAULT)
-    input_paths = _input_paths(kgo_dir)
+@pytest.mark.parametrize(
+    "input_paths_getter,kgo_dir_getter,kgo_filename,cli_options",
+    [
+        pytest.param(
+            _input_paths,
+            _no_realizations_dir,
+            KGO_DEFAULT,
+            (),
+            id="default-target-heights",
+        ),
+        pytest.param(
+            _input_paths,
+            _no_realizations_dir,
+            KGO_TARGET_LEVELS,
+            ("--target-height-levels=15,25",),
+            id="explicit-target-heights",
+        ),
+        pytest.param(
+            _input_paths,
+            _no_realizations_dir,
+            KGO_DEFAULT,
+            ("--target-height-levels=none",),
+            id="none-target-heights-lowercase",
+        ),
+        pytest.param(
+            _input_paths,
+            _no_realizations_dir,
+            KGO_DEFAULT,
+            ("--target-height-levels=NONE",),
+            id="none-target-heights-uppercase",
+        ),
+        pytest.param(
+            _input_paths,
+            _no_realizations_dir,
+            KGO_TARGET_LEVELS,
+            ("--target-height-levels=25, 15",),
+            id="whitespace-and-unsorted-target-heights",
+        ),
+        pytest.param(
+            _input_paths_with_realization,
+            _with_realizations_dir,
+            KGO_WITH_REALIZATION,
+            (),
+            id="realization-input",
+        ),
+    ],
+)
+def test_successful_wind_orographic_correction_matches_kgo(
+    tmp_path,
+    input_paths_getter,
+    kgo_dir_getter,
+    kgo_filename,
+    cli_options,
+):
+    """Test successful CLI options against their expected output cubes."""
+    kgo_dir = kgo_dir_getter()
+    kgo_path = _kgo_path(kgo_dir, kgo_filename)
+    input_paths = input_paths_getter(kgo_dir)
     output_path = tmp_path / "output.nc"
 
-    args = [*input_paths, "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-@pytest.mark.slow
-def test_target_height_levels(tmp_path):
-    """Test unresolved-orography correction on explicit target heights."""
-    kgo_dir = _no_realizations_dir()
-    kgo_path = _kgo_path(kgo_dir, KGO_TARGET_LEVELS)
-    input_paths = _input_paths(kgo_dir)
-    output_path = tmp_path / "output.nc"
-
-    args = [
-        *input_paths,
-        "--target-height-levels=15,25",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-@pytest.mark.slow
-@pytest.mark.parametrize("none_value", ["none", "NONE"])
-def test_target_height_levels_none_string(tmp_path, none_value):
-    """Test explicit none values behave like omitted target heights."""
-    kgo_dir = _no_realizations_dir()
-    kgo_path = _kgo_path(kgo_dir, KGO_DEFAULT)
-    input_paths = _input_paths(kgo_dir)
-    output_path = tmp_path / "output.nc"
-
-    args = [
-        *input_paths,
-        f"--target-height-levels={none_value}",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-@pytest.mark.slow
-def test_target_height_levels_whitespace_and_unsorted(tmp_path):
-    """Test unsorted target heights with whitespace map to expected output."""
-    kgo_dir = _no_realizations_dir()
-    kgo_path = _kgo_path(kgo_dir, KGO_TARGET_LEVELS)
-    input_paths = _input_paths(kgo_dir)
-    output_path = tmp_path / "output.nc"
-
-    args = [
-        *input_paths,
-        "--target-height-levels=25, 15",
-        "--output",
-        output_path,
-    ]
+    args = [*input_paths, *cli_options, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -143,16 +141,3 @@ def test_invalid_target_height_levels(tmp_path, target_value):
     ]
     with pytest.raises(ValueError, match="could not convert string to float"):
         run_cli(args)
-
-
-@pytest.mark.slow
-def test_with_realization_input(tmp_path):
-    """Test unresolved-orography correction with realization dimension input."""
-    kgo_dir = _with_realizations_dir()
-    kgo_path = _kgo_path(kgo_dir, KGO_WITH_REALIZATION)
-    input_paths = _input_paths_with_realization(kgo_dir)
-    output_path = tmp_path / "output.nc"
-
-    args = [*input_paths, "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)

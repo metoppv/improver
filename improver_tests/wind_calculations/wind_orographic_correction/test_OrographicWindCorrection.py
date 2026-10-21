@@ -1661,7 +1661,15 @@ def test_calculate_characteristic_wavenumber_applies_input_thresholds():
 
 
 def test_calculate_characteristic_wavenumber_clips_length_scale_bounds():
-    """Characteristic wavenumber should respect the configured length-scale limits."""
+    """Extreme roughness values should produce the configured wavenumber limits.
+
+    Both standard deviations are 10 m, giving a half peak-to-trough amplitude
+    of sqrt(2) * 10 m. The roughness of 100 at (0, 0) makes the inverse length
+    scale exceed its upper bound, so the length scale is clipped to 500 m and
+    the wavenumber is pi / 500. The roughness of 0.0001 at (0, 1) makes the
+    inverse length scale fall below its lower bound, so the length scale is
+    clipped to 4000 m and the wavenumber is pi / 4000.
+    """
     orog_stddev_cube = _make_xy_cube(
         np.full((2, 2), 10.0, dtype=np.float32),
         "standard_deviation_of_height_in_grid_cell",
