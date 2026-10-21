@@ -1317,10 +1317,7 @@ def test_quantile_forest_not_installed(monkeypatch):
         experiments=experiments,
     )
 
-    msg = (
-        "The quantile_forest package is not installed. "
-        "No parquet files have been processed."
-    )
+    msg = "The quantile-forest package is not installed. Skipping training of Quantile Regression Random Forests."
     with pytest.warns(UserWarning, match=msg):
         result = plugin([])
     assert result == (None, None, None)
