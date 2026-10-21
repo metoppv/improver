@@ -2,7 +2,11 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Plugin for interpolating wind speeds and applying unresolved-orography correction."""
+"""Plugin for interpolating wind speeds and applying unresolved-orography correction.
+
+.. include:: extended_documentation/wind_calculations/
+    wind_orographic_correction.rst
+"""
 
 import numpy as np
 from iris.coords import Coord
