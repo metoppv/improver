@@ -291,11 +291,10 @@ class LoadForTrainQRF(PostProcessingPlugin):
             )
         ].reset_index(drop=True)
 
-        # Convert df columns from ns to pandas timestamp object.
+        # Convert df columns to pandas timestamp objects, ensuring a consistent
+        # timezone-aware nanosecond resolution across pandas/pyarrow versions.
         for column in ["time", "forecast_reference_time", "blend_time"]:
-            forecast_df[column] = pd.to_datetime(
-                forecast_df[column], unit="ns", utc=True
-            )
+            forecast_df[column] = pd.to_datetime(forecast_df[column], utc=True)
             forecast_df[column] = forecast_df[column].astype("datetime64[ns, UTC]")
         for column in ["forecast_period", "period"]:
             forecast_df[column] = pd.to_timedelta(forecast_df[column], unit="ns")
@@ -310,7 +309,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
             engine="pyarrow",
         )
 
-        truth_df["time"] = pd.to_datetime(truth_df["time"], unit="ns", utc=True)
+        truth_df["time"] = pd.to_datetime(truth_df["time"], utc=True)
         truth_df["time"] = truth_df["time"].astype("datetime64[ns, UTC]")
 
         truth_df = self._strip_unique_site_id_whitespace(truth_df)
@@ -360,6 +359,8 @@ class LoadForTrainQRF(PostProcessingPlugin):
 
         """
         if not self.quantile_forest_installed:
+            msg = "The quantile-forest package is not installed. Skipping training of Quantile Regression Random Forests."
+            warnings.warn(msg)
             return None, None, None
         cube_inputs, parquets, _ = split_netcdf_parquet_pickle(file_paths)
 
