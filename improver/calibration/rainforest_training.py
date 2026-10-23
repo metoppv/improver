@@ -2,8 +2,12 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
+"""Plugin to train RainForests models.
 
-"""RainForests model training plugin."""
+A detailed description of RainForests appears under the
+:doc:`rainforest_calibration module <improver.calibration.rainforest_calibration>`
+
+"""
 
 import pathlib
 from pathlib import Path
@@ -12,6 +16,7 @@ import pandas
 
 from improver import BasePlugin
 from improver.calibration import lightgbm_package_available
+from improver.calibration.rainforest_model_config import RainForestsModelConfig
 
 
 class TrainRainForestsModel(BasePlugin):
@@ -24,7 +29,7 @@ class TrainRainForestsModel(BasePlugin):
 
     def __init__(
         self,
-        model_config_dict: dict[int, dict[str, dict[str, str]]],
+        model_config_dict: RainForestsModelConfig,
         training_data: pandas.DataFrame,
         observation_column: str,
         training_columns: list[str],
@@ -48,23 +53,25 @@ class TrainRainForestsModel(BasePlugin):
                 Optional. Parameters passed into training library. Any parameters
                 here will override the default parameters.
 
-        Dictionary is of format::
+        RainForestsModelConfig dictionary is of format:
 
-        {
-        "24": {
-            "0.000010": {
-                "lightgbm_model": "<path_to_lightgbm_model_object>",
-                "treelite_model": "<path_to_treelite_model_object>"
-            },
-            "0.000050": {
-                "lightgbm_model": "<path_to_lightgbm_model_object>",
-                "treelite_model": "<path_to_treelite_model_object>"
-            },
-            "0.000100": {
-                "lightgbm_model": "<path_to_lightgbm_model_object>",
-                "treelite_model": "<path_to_treelite_model_object>"
-            },
-        }
+        .. code-block:: json
+
+            {
+            "24": {
+                "0.000010": {
+                    "lightgbm_model": "<path_to_lightgbm_model_object>",
+                    "treelite_model": "<path_to_treelite_model_object>"
+                },
+                "0.000050": {
+                    "lightgbm_model": "<path_to_lightgbm_model_object>",
+                    "treelite_model": "<path_to_treelite_model_object>"
+                },
+                "0.000100": {
+                    "lightgbm_model": "<path_to_lightgbm_model_object>",
+                    "treelite_model": "<path_to_treelite_model_object>"
+                },
+            }
 
         The keys specify the lead times and model threshold values, while the
         associated values are the path to the corresponding tree-model objects
@@ -101,7 +108,7 @@ class TrainRainForestsModel(BasePlugin):
         if lightgbm_params:
             self.params = self.params | lightgbm_params
 
-    def process(self, lead_time: int, thresholds: list[str]) -> None:
+    def process(self, lead_time: str, thresholds: list[str]) -> None:
         """Train models for a set of threshold values.
 
         Args:
