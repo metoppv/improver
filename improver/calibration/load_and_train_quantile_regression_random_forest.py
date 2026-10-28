@@ -212,18 +212,27 @@ class LoadForTrainQRF(PostProcessingPlugin):
             )
         cycletimes = list(set(cycletimes))
 
-        example_file_path = next(Path(forecast_table_path).glob("**/*.parquet"))
-        if pq.read_schema(example_file_path).get_all_field_indices("percentile"):
-            altered_schema = CalibrationSchemas().FORECAST_SCHEMA
-        elif pq.read_schema(example_file_path).get_all_field_indices("realization"):
-            altered_schema = CalibrationSchemas().FORECAST_SCHEMA.remove(
-                CalibrationSchemas().FORECAST_SCHEMA.get_field_index("percentile")
-            )
-            altered_schema = altered_schema.append(pa.field("realization", pa.int64()))
-        else:
+        parquet_files = sorted(Path(forecast_table_path).glob("**/*.parquet"))
+        altered_schema = None
+        for parquet_file in parquet_files:
+            schema = pq.read_schema(parquet_file)
+            if schema.get_all_field_indices("percentile"):
+                altered_schema = CalibrationSchemas().FORECAST_SCHEMA
+                break
+            if schema.get_all_field_indices("realization"):
+                altered_schema = CalibrationSchemas().FORECAST_SCHEMA.remove(
+                    CalibrationSchemas().FORECAST_SCHEMA.get_field_index("percentile")
+                )
+                altered_schema = altered_schema.append(
+                    pa.field("realization", pa.int64())
+                )
+                break
+
+        if altered_schema is None:
             msg = (
-                "The forecast parquet file is expected to contain either a "
-                "'percentile' or 'realization' field. Neither was found."
+                "The forecast parquet files are expected to contain either a "
+                "'percentile' or 'realization' field. Neither was found in any "
+                f"candidate file under: {forecast_table_path}."
             )
             raise ValueError(msg)
 
