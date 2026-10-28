@@ -1472,19 +1472,21 @@ def test_fit_log_wind_profile_applies_height_limits(monkeypatch):
     monkeypatch.setattr(
         wind_orographic_correction.OrographicWindCorrection,
         "_approximate_roughness_length",
-        _fake_approximate,
+        staticmethod(_fake_approximate),
     )
     monkeypatch.setattr(
         wind_orographic_correction.OrographicWindCorrection,
         "_refine_roughness_length",
-        lambda *args, **kwargs: np.full((2, 2), 0.1, dtype=float),
+        staticmethod(lambda *args, **kwargs: np.full((2, 2), 0.1, dtype=float)),
     )
     monkeypatch.setattr(
         wind_orographic_correction.OrographicWindCorrection,
         "_evaluate_log_profile_fit",
-        lambda *args, **kwargs: (
-            np.full((2, 2), 0.2, dtype=float),
-            np.zeros((2, 2), dtype=float),
+        staticmethod(
+            lambda *args, **kwargs: (
+                np.full((2, 2), 0.2, dtype=float),
+                np.zeros((2, 2), dtype=float),
+            )
         ),
     )
 
@@ -1507,17 +1509,21 @@ def test_fit_log_wind_profile_marks_invalid_result_points_nan(monkeypatch):
     monkeypatch.setattr(
         wind_orographic_correction.OrographicWindCorrection,
         "_refine_roughness_length",
-        lambda *args, **kwargs: np.array(
-            [[np.nan, 0.1], [0.1, 0.1]],
-            dtype=float,
+        staticmethod(
+            lambda *args, **kwargs: np.array(
+                [[np.nan, 0.1], [0.1, 0.1]],
+                dtype=float,
+            )
         ),
     )
     monkeypatch.setattr(
         wind_orographic_correction.OrographicWindCorrection,
         "_evaluate_log_profile_fit",
-        lambda *args, **kwargs: (
-            np.full((2, 2), 0.2, dtype=float),
-            np.zeros((2, 2), dtype=float),
+        staticmethod(
+            lambda *args, **kwargs: (
+                np.full((2, 2), 0.2, dtype=float),
+                np.zeros((2, 2), dtype=float),
+            )
         ),
     )
 
