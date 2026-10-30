@@ -9,6 +9,7 @@
 """
 
 import numpy as np
+from cf_units import Unit
 from iris.coords import Coord
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
@@ -433,7 +434,11 @@ class _WindProfileMethods:
 
         An effective roughness length is calculated independently at each grid
         point by fitting a neutral logarithmic wind profile to wind speeds on
-        the lowest model levels (between the surface and 300 m).
+        the lowest model levels. By default, the fit uses levels strictly above
+        0 m and up to 300 m inclusive. At least two valid positive wind speeds
+        in this range are needed at each grid point. A level at exactly 0 m is
+        not required and is excluded from fitting because the logarithmic
+        profile is zero there regardless of roughness length.
 
         Directly fitting the logarithmic profile at every grid point is
         computationally expensive because it requires a non-linear optimisation.
@@ -906,7 +911,8 @@ class _TerrainResponseMethods:
             corrected wind = background wind * speed-up factor
 
         Factors above 1 increase wind speed. Negative perturbations are clipped,
-        so this implementation does not apply slow-downs.
+        so this implementation does not apply slow-downs. The perturbations are
+        capped at 2 e.g. a doubling of the background wind speed.
 
         Args:
             characteristic_wavenumber:
@@ -1108,6 +1114,10 @@ class OrographicWindCorrection(
     using a terrain-induced speed-up factor derived from unresolved-orography
     ancillaries.
 
+    The correction cannot reduce wind speed and is capped at a 100% increase
+    (doubling) relative to the uncorrected wind speed at the same target height.
+    The multiplicative speed-up factor is bounded between 1 and 2 inclusive.
+
     At a high level, the process is (for each grid point):
         - describe the unresolved terrain
         - describe the wind profile
@@ -1163,10 +1173,9 @@ class OrographicWindCorrection(
         Args:
             uncorrected_wind_cube:
                 Cube containing the uncorrected wind-speed forecast on height
-                levels, for a single realization. The levels must span 0 m to at
-                least 300 m above ground level, since the lower profile is used
-                to estimate effective surface roughness. Its height coordinate
-                must be in metres.
+                levels, for a single realization. The profile must reach at
+                least 300 m above ground to estimate effective surface roughness.
+                Its height coordinate must be in metres.
 
         Returns:
             Cube:
@@ -1177,7 +1186,7 @@ class OrographicWindCorrection(
             ValueError:
                 If fewer than two wind heights are provided, or if the wind
                 forecast does not include heights up to at least 300 m above
-                ground level.
+                ground level or at least two levels with 0 < height <= 300 m.
         """
         if self.original_height_levels.size < 2:
             raise ValueError(
@@ -1191,6 +1200,14 @@ class OrographicWindCorrection(
                 "uncorrected_wind_cube must include heights up to at least 300 m "
                 "above ground level, but max height provided is "
                 f"{np.max(self.original_height_levels)} m."
+            )
+        fitting_heights = (self.original_height_levels > 0.0) & (
+            self.original_height_levels <= 300.0
+        )
+        if np.count_nonzero(fitting_heights) < 2:
+            raise ValueError(
+                "uncorrected_wind_cube must include at least two height levels "
+                "with 0 < height <= 300 m to estimate effective surface roughness."
             )
 
         # Validate the grids.
@@ -1313,7 +1330,7 @@ class OrographicWindCorrection(
     @staticmethod
     def _require_metre_units(cube: Cube | Coord, cube_name: str) -> None:
         """Require the given cube or coordinate to have units of metres."""
-        if str(cube.units) != "m":
+        if cube.units != Unit("m"):
             raise ValueError(f"{cube_name} must be in metres; got {cube.units}.")
 
     @classmethod
@@ -1354,14 +1371,18 @@ class OrographicWindCorrection(
         Describe the unresolved terrain and model wind profile, calculate the
         expected terrain effect, and apply it as a wind-speed correction.
 
+        The speed-up factor is bounded between 1 and 2 inclusive: corrected
+        winds cannot be weaker than the uncorrected winds at the same target
+        heights, and their increase is capped at 100% (doubling).
+
         For ensemble input, each realization is corrected independently.
 
         Args:
             uncorrected_wind_cube:
                 Cube containing the uncorrected wind-speed forecast on height
-                levels. The levels must span 0 m to at least 300 m above ground
-                level, since the lower profile is used to estimate effective
-                surface roughness. Its height coordinate must be in metres.
+                levels. The profile must reach at least 300 m above ground to
+                estimate effective surface roughness. Its height coordinate
+                must be in metres.
                 It may contain multiple realizations along the "realization"
                 coordinate.
 

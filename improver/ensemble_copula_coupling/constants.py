@@ -72,6 +72,7 @@ BOUNDS_FOR_ECDF = {
     ),
     # Wind
     "wind_speed": Bounds((0, 50), "m s^-1"),
+    "wind_speed_at_hubheight": Bounds((0, 50), "m s^-1"),
     "wind_speed_of_gust": Bounds((0, 200), "m s^-1"),
     # Others
     "air_pressure_at_sea_level": Bounds((79600, 108000), "Pa"),

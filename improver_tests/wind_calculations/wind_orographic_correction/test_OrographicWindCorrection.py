@@ -285,6 +285,45 @@ def test_process_rejects_wind_profiles_that_do_not_reach_300m(
         plugin.process(short_profile)
 
 
+@pytest.mark.parametrize(
+    "heights",
+    [
+        [0.0, 400.0],
+        [200.0, 400.0],
+        [0.0, 300.0, 400.0],
+        [-10.0, 100.0, 400.0],
+    ],
+)
+def test_process_rejects_insufficient_roughness_fitting_heights(heights):
+    """At least two levels must be strictly above 0 m and at or below 300 m."""
+    wind = _make_wind_profile_cube(
+        heights=np.array(heights, dtype=np.float32),
+        values_at_heights=np.arange(1, len(heights) + 1, dtype=np.float32),
+    )
+
+    with pytest.raises(
+        ValueError, match="at least two height levels with 0 < height <= 300 m"
+    ):
+        _make_plugin().process(wind)
+
+
+@pytest.mark.parametrize(
+    "heights",
+    [[100.0, 300.0], [100.0, 300.0, 400.0], [0.0, 100.0, 300.0, 400.0]],
+)
+def test_process_accepts_roughness_fitting_heights_with_or_without_surface(heights):
+    """Two fitting levels suffice whether or not a 0 m level is present."""
+    wind = _make_wind_profile_cube(
+        heights=np.array(heights, dtype=np.float32),
+        values_at_heights=np.arange(1, len(heights) + 1, dtype=np.float32),
+    )
+
+    result = _make_plugin().process(wind)
+
+    assert np.isfinite(result.data).all()
+    np.testing.assert_array_equal(result.coord("height").points, heights)
+
+
 def test_process_rejects_single_height_level_wind_profile():
     """A single wind level cannot support spline fitting or roughness fitting."""
     single_level_wind = _make_wind_profile_cube(
@@ -747,6 +786,22 @@ def test_create_corrected_wind_speed_cube_handles_two_dimensional_templates():
     np.testing.assert_allclose(result.data, corrected[0])
     np.testing.assert_allclose(
         result.coord("height").points, np.array([15.0], dtype=np.float32)
+    )
+
+
+@pytest.mark.parametrize("units", ["m", "meter", "metre"])
+@pytest.mark.parametrize("as_coordinate", [False, True])
+def test_require_metre_units_accepts_equivalent_units(units, as_coordinate):
+    """Equivalent metre spellings are accepted for cubes and coordinates."""
+    wind = _make_wind_profile_cube(
+        heights=np.array([10.0, 20.0], dtype=np.float32),
+        values_at_heights=np.array([2.0, 4.0], dtype=np.float32),
+    )
+    target = wind.coord("height") if as_coordinate else wind
+    target.units = units
+
+    wind_orographic_correction.OrographicWindCorrection._require_metre_units(
+        target, "input"
     )
 
 

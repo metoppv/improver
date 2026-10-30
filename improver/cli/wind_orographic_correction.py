@@ -23,18 +23,17 @@ def process(
     using a terrain-induced speed-up factor derived from unresolved-orography
     ancillaries.
 
-    The input ``uncorrected_wind_cube`` must include height levels from the
-    surface up to at least 300 m above ground level, as this lower profile is
-    used to estimate the surface roughness.
+    The input wind profile must reach at least 300 m above ground to estimate
+    effective surface roughness.
 
     For ensemble input, each realization is corrected independently.
 
     Args:
         uncorrected_wind_cube:
             Cube containing the uncorrected wind-speed forecast on height
-            levels. The levels must span 0 m to at least 300 m above ground
-            level, since the lower profile is used to estimate effective
-            surface roughness. Its height coordinate must be in metres.
+            levels. The profile must reach at least 300 m above ground to
+            estimate effective surface roughness. Its height coordinate must
+            be in metres.
 
         unsmoothed_orog_cube:
             Cube containing the unsmoothed (i.e. true) orography, in metres.

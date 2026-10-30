@@ -727,5 +727,63 @@ class Test_process_spatial_weights(unittest.TestCase):
         np.testing.assert_array_almost_equal(result.data, expected_data)
 
 
+@pytest.mark.parametrize("diagnostic", ["wind_speed", "wind_speed_at_hubheight"])
+def test_blend_deterministic_and_ensemble_wind_probabilities(diagnostic):
+    """Regular and hub-height winds use the same probabilistic blend pipeline."""
+    from improver.cli.generate_percentiles import process as generate_percentiles
+    from improver.threshold import Threshold
+
+    heights = np.array([50, 100, 150, 200, 250, 300], dtype=np.float32)
+    cube_options = {
+        "name": diagnostic,
+        "units": "m s-1",
+        "vertical_levels": heights,
+        "height": True,
+        "spatial_grid": "equalarea",
+        "time": dt(2018, 9, 10, 7),
+        "frt": dt(2018, 9, 10, 3),
+    }
+    deterministic = set_up_variable_cube(
+        np.full((6, 2, 2), 10.0, dtype=np.float32),
+        attributes={"mosg__model_configuration": "uk_det"},
+        **cube_options,
+    )
+    ensemble = set_up_variable_cube(
+        np.broadcast_to(
+            np.array([5, 10, 15], dtype=np.float32)[:, None, None, None],
+            (3, 6, 2, 2),
+        ).copy(),
+        realizations=[23, 24, 25],
+        attributes={"mosg__model_configuration": "uk_ens"},
+        **cube_options,
+    )
+    thresholds = [0, 5, 10, 15, 20, 50]
+    deterministic_probabilities = Threshold(
+        threshold_values=thresholds, comparison_operator="ge"
+    )(deterministic)
+    ensemble_probabilities = Threshold(
+        threshold_values=thresholds,
+        comparison_operator="ge",
+        collapse_coord=["realization"],
+    )(ensemble)
+
+    assert deterministic_probabilities.shape == ensemble_probabilities.shape
+    assert not ensemble_probabilities.coords("realization")
+    result = WeightAndBlend("model_configuration", "linear", y0val=1, ynval=1)(
+        [deterministic_probabilities, ensemble_probabilities],
+        model_id_attr="mosg__model_configuration",
+        cycletime="20180910T0300Z",
+    )
+    np.testing.assert_allclose(
+        result.data,
+        0.5 * (deterministic_probabilities.data + ensemble_probabilities.data),
+    )
+    percentiles = generate_percentiles(result, percentiles=[10, 50, 90])
+    assert percentiles.name() == diagnostic
+    assert np.isfinite(percentiles.data).all()
+    np.testing.assert_array_equal(percentiles.coord("height").points, heights)
+    np.testing.assert_array_equal(percentiles.coord("percentile").points, [10, 50, 90])
+
+
 if __name__ == "__main__":
     unittest.main()

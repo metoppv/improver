@@ -15,7 +15,7 @@ Howard and Clark (2007).
 
 The method uses information describing the unresolved terrain together with the
 forecast wind profile to estimate the terrain-induced wind-speed perturbation.
-At a high level, the workflow is:
+At a high level, the workflow is::
 
     describe the unresolved terrain
         -> describe the wind profile
@@ -65,10 +65,10 @@ constrained to the configured bounds before conversion to a wavenumber:
        \frac{1}{\ell_{\min}}
    \right),
 
-where \(\sigma\) is the sub-grid orography standard deviation, \(r\) is the
-dimensionless silhouette roughness, and \(A_{\min}\) is a minimum amplitude
-that avoids division by very small values. The defaults are \(A_{\min}=1\) m,
-\(\ell_{\min}=500\) m, and \(\ell_{\max}=4000\) m. The calculation is masked
+where :math:`\sigma` is the sub-grid orography standard deviation, :math:`r` is the
+dimensionless silhouette roughness, and :math:`A_{\min}` is a minimum amplitude
+that avoids division by very small values. The defaults are :math:`A_{\min}=1` m,
+:math:`\ell_{\min}=500` m, and :math:`\ell_{\max}=4000` m. The calculation is masked
 where standard deviation is below 2 m or silhouette roughness is negative.
 
 The unresolved-orography height and characteristic wavenumber together describe
@@ -126,8 +126,8 @@ surface and 300 m above ground level:
    U(z) = \frac{u_*}{\kappa}\,
           \ln\!\left(\frac{z + z_0}{z_0}\right),
 
-where \(U(z)\) is wind speed at height \(z\), \(u_*\) is friction velocity,
-\(\kappa=0.4\) is the von Karman constant, and \(z_0\) is effective roughness
+where :math:`U(z)` is wind speed at height :math:`z`, :math:`u_*` is friction velocity,
+:math:`\kappa=0.4` is the von Karman constant, and :math:`z_0` is effective roughness
 length.
 
 This is different to the legacy system, which needed an explicitly provided
@@ -142,14 +142,14 @@ and target height. Surface friction is represented by an inner-layer response
 calculated using modified Bessel functions. The terrain response also decays
 with height, with shorter-scale terrain decaying more rapidly.
 
-In the implementation, the terrain-induced perturbation at target height \(z\)
+In the implementation, the terrain-induced perturbation at target height :math:`z`
 is:
 
 .. math::
 
    \Delta U(z) = U(z_s)\,F(z)\,e^{-kz}\,\tanh(k\Delta h),
 
-where \(F(z)\) is the inner-layer response. The perturbation describes the
+where :math:`F(z)` is the inner-layer response. The perturbation describes the
 expected wind-speed change due to terrain unresolved by the NWP model.
 
 6. Apply the correction
@@ -181,7 +181,9 @@ Input Requirements
 Wind forecast:
 
 * Height coordinates must be in metres above ground level.
-* At least two height levels must be available.
+* At least two height levels must lie strictly above 0 m and at or below 300 m
+   for roughness-length fitting. A level at exactly 0 m is not required and is
+   excluded from fitting.
 * The input profile must extend to at least 300 m above ground level.
 * Ensemble forecasts are supported; each realization is processed independently.
 
