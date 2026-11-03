@@ -449,13 +449,13 @@ def filter_forecast_periods(forecast_df, forecast_periods):
         else:
             all_periods.append(int(token))
 
-    # Convert to seconds and deduplicate
+    # Convert to seconds and deduplicate.
     forecast_periods_s = [fp * 3600 for fp in sorted(set(all_periods))]
-    target_periods = pd.to_timedelta(np.array(forecast_periods_s) * 1e6, unit="us")
+    target_periods = pd.to_timedelta(np.array(forecast_periods_s), unit="s")
 
     forecast_df = forecast_df.copy()
     forecast_df["forecast_period"] = pd.to_timedelta(
-        forecast_df["forecast_period"], unit="us"
+        forecast_df["forecast_period"], unit="s"
     )
 
     return forecast_df[forecast_df["forecast_period"].isin(target_periods)].reset_index(
@@ -475,10 +475,10 @@ def amend_expected_forecast_df(
     forecast_df = filter_forecast_periods(forecast_df, forecast_periods)
     for column in ["time", "forecast_reference_time", "blend_time"]:
         forecast_df[column] = pd.to_datetime(forecast_df[column], utc=True)
-        forecast_df[column] = forecast_df[column].astype("datetime64[us, UTC]")
+        forecast_df[column] = forecast_df[column].astype("datetime64[s, UTC]")
     for column in ["forecast_period", "period"]:
-        forecast_df[column] = pd.to_timedelta(forecast_df[column], unit="us")
-        forecast_df[column] = forecast_df[column].astype("timedelta64[us]")
+        forecast_df[column] = pd.to_timedelta(forecast_df[column], unit="s")
+        forecast_df[column] = forecast_df[column].astype("timedelta64[s]")
 
     base_df = forecast_df[forecast_df["diagnostic"] == parquet_diagnostic_names[0]]
     for parquet_diagnostic_name, cf_name in zip(
@@ -519,7 +519,7 @@ def amend_expected_truth_df(truth_df, parquet_diagnostic_name):
     """Amend the expected truth DataFrame to match the output of the plugin."""
     truth_df = truth_df[truth_df["diagnostic"] == parquet_diagnostic_name]
     truth_df["time"] = pd.to_datetime(truth_df["time"], utc=True)
-    truth_df["time"] = truth_df["time"].astype("datetime64[us, UTC]")
+    truth_df["time"] = truth_df["time"].astype("datetime64[s, UTC]")
     return truth_df
 
 
@@ -1282,7 +1282,7 @@ def test_unexpected_preparation(
     truth_df["time"] = pd.Series(
         [pd.Timestamp("2020-01-01 00:00:00", tz="utc")] * len(truth_df),
         index=truth_df.index,
-    ).astype("datetime64[us, UTC]")
+    ).astype("datetime64[s, UTC]")
 
     plugin = PrepareAndTrainQRF(
         feature_config=feature_config,

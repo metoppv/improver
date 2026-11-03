@@ -284,10 +284,9 @@ class LoadForTrainQRF(PostProcessingPlugin):
                 merge_on,
             )
 
-        seconds_to_us = 1e6
         forecast_df = forecast_df[
             forecast_df["forecast_period"].isin(
-                pd.to_timedelta(np.array(forecast_periods) * seconds_to_us, unit="us")
+                pd.to_timedelta(np.array(forecast_periods), unit="s")
             )
         ].reset_index(drop=True)
 
