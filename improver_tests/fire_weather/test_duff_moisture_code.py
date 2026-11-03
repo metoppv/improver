@@ -12,6 +12,7 @@ from iris.cube import Cube, CubeList
 
 from improver.fire_weather.duff_moisture_code import DuffMoistureCode
 from improver_tests.fire_weather import (
+    DEFAULT_CYCLE_TIME,
     DEFAULT_TIME,
     INPUT_ATTRIBUTES,
     make_cube,
@@ -113,7 +114,7 @@ def test__perform_rainfall_adjustment(
             Expected DMC after adjustment.
     """
     cubes = input_cubes(precip_val=precip_val, dmc_val=prev_dmc)
-    plugin = DuffMoistureCode()
+    plugin = DuffMoistureCode(cycletime=DEFAULT_CYCLE_TIME)
     plugin.load_input_cubes(CubeList(cubes), month=7)
     # previous_dmc is set in load_input_cubes, overwriting for explicit test control
     plugin.previous_dmc = np.full(plugin.precipitation.data.shape, prev_dmc)
@@ -150,7 +151,7 @@ def test__perform_rainfall_adjustment_spatially_varying() -> None:
     dmc_cube = make_cube(dmc_data, "duff_moisture_code", "1", True, INPUT_ATTRIBUTES)
     cubes = [temp_cube, precip_cube, humidity_cube, dmc_cube]
 
-    plugin = DuffMoistureCode()
+    plugin = DuffMoistureCode(cycletime=DEFAULT_CYCLE_TIME)
     plugin.load_input_cubes(CubeList(cubes), month=7)
     plugin.previous_dmc = dmc_data.copy()
     plugin._perform_rainfall_adjustment()
@@ -204,7 +205,7 @@ def test__calculate_drying_rate(
             Expected drying rate value.
     """
     cubes = input_cubes(temp_val=temp_val, rh_val=rh_val)
-    plugin = DuffMoistureCode()
+    plugin = DuffMoistureCode(cycletime=DEFAULT_CYCLE_TIME)
     plugin.load_input_cubes(CubeList(cubes), month=month)
     rate = plugin._calculate_drying_rate()
     # Check output type and shape
@@ -236,7 +237,7 @@ def test__calculate_drying_rate_spatially_varying() -> None:
         ),
     ]
 
-    plugin = DuffMoistureCode()
+    plugin = DuffMoistureCode(cycletime=DEFAULT_CYCLE_TIME)
     plugin.load_input_cubes(CubeList(cubes), month=7)
     rate = plugin._calculate_drying_rate()
 
@@ -280,7 +281,7 @@ def test__calculate_dmc(
         expected_dmc:
             Expected DMC output value.
     """
-    plugin = DuffMoistureCode()
+    plugin = DuffMoistureCode(cycletime=DEFAULT_CYCLE_TIME)
     plugin.previous_dmc = np.array([prev_dmc])
     dmc = plugin._calculate_dmc(np.array([drying_rate]))
     # Check output type and shape
@@ -332,7 +333,7 @@ def test_process(
             Expected DMC output value for all grid points.
     """
     cubes = input_cubes(temp_val, precip_val, rh_val, dmc_val)
-    plugin = DuffMoistureCode()
+    plugin = DuffMoistureCode(cycletime=DEFAULT_CYCLE_TIME)
     result = plugin.process(CubeList(cubes), month=month)
 
     # Check output type and shape
@@ -372,7 +373,9 @@ def test_process_spatially_varying() -> None:
         ),
     ]
 
-    result = DuffMoistureCode().process(CubeList(cubes), month=7)
+    result = DuffMoistureCode(cycletime=DEFAULT_CYCLE_TIME).process(
+        CubeList(cubes), month=7
+    )
 
     # Verify shape, type, and all non-negative
     assert (
@@ -425,9 +428,10 @@ def test_warning_for_iteration_counts_inside_lag_time() -> None:
 
     msg = r"duff_moisture_code is 14 iterations in to its spin-up period"
     with pytest.warns(UserWarning, match=msg):
-        DuffMoistureCode().process(cubes, month=4)
+        DuffMoistureCode(cycletime=DEFAULT_CYCLE_TIME).process(cubes, month=4)
 
 
+@pytest.mark.usefixtures("iris_date_precision")
 def test_no_warning_for_metadata_outside_lag_time(
     recwarn: list[warnings.WarningMessage],
 ) -> None:
@@ -445,7 +449,7 @@ def test_no_warning_for_metadata_outside_lag_time(
     ]
     cubes = make_input_cubes(cube_args, shape=(5, 5))
 
-    result = DuffMoistureCode().process(cubes, month=1)
+    result = DuffMoistureCode(cycletime=DEFAULT_CYCLE_TIME).process(cubes, month=1)
 
     np_warning = "numpy.ndarray size changed"
     warnings = [str(w.message) for w in recwarn if np_warning not in str(w.message)]
@@ -468,7 +472,7 @@ def test_initialise_true_leads_to_user_warning() -> None:
 
     msg = r"duff_moisture_code is 0 iterations in to its spin-up period"
     with pytest.warns(UserWarning, match=msg):
-        result = DuffMoistureCode().process(
+        result = DuffMoistureCode(cycletime=DEFAULT_CYCLE_TIME).process(
             initialisation_input_cubes, month=12, initialise=True
         )
     assert result.attributes["iteration_count"] == 1

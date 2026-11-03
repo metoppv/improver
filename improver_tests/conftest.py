@@ -28,3 +28,15 @@ def thread_control(monkeypatch):
     except ModuleNotFoundError:
         yield
     return
+
+
+@pytest.fixture
+def iris_date_precision():
+    """Use Iris microsecond date precision while running test.
+
+    Silences the date precision warning when a test uses Iris.
+    """
+    import iris
+
+    with iris.FUTURE.context(date_microseconds=True):
+        yield

@@ -7,7 +7,11 @@ import pytest
 from iris.cube import Cube, CubeList
 
 from improver.fire_weather.initial_spread_index import InitialSpreadIndex
-from improver_tests.fire_weather import INPUT_ATTRIBUTES, make_input_cubes
+from improver_tests.fire_weather import (
+    DEFAULT_CYCLE_TIME,
+    INPUT_ATTRIBUTES,
+    make_input_cubes,
+)
 
 
 def input_cubes(
@@ -74,7 +78,7 @@ def test__calculate_fine_fuel_moisture(
             Expected fine fuel moisture code.
     """
     cubes = input_cubes(wind_val=10.0, ffmc_val=ffmc_val)
-    plugin = InitialSpreadIndex()
+    plugin = InitialSpreadIndex(cycletime=DEFAULT_CYCLE_TIME)
     plugin.load_input_cubes(CubeList(cubes))
     plugin._calculate_fine_fuel_moisture()
     assert np.allclose(plugin.moisture_content, expected_fm, rtol=0.01)
@@ -112,7 +116,7 @@ def test__calculate_wind_function(
             Expected wind function value.
     """
     cubes = input_cubes(wind_val=wind_val, ffmc_val=85.0)
-    plugin = InitialSpreadIndex()
+    plugin = InitialSpreadIndex(cycletime=DEFAULT_CYCLE_TIME)
     plugin.load_input_cubes(CubeList(cubes))
     wind_function = plugin._calculate_wind_function()
     assert np.allclose(wind_function, expected_wf, rtol=0.01)
@@ -150,7 +154,7 @@ def test__calculate_spread_factor(
             Expected ISI value with zero wind.
     """
     cubes = input_cubes(wind_val=0.0, ffmc_val=ffmc_val)
-    plugin = InitialSpreadIndex()
+    plugin = InitialSpreadIndex(cycletime=DEFAULT_CYCLE_TIME)
     plugin.load_input_cubes(CubeList(cubes))
     plugin._calculate_fine_fuel_moisture()
     wind_function = plugin._calculate_wind_function()
@@ -191,7 +195,7 @@ def test__calculate_isi(
             Expected ISI value.
     """
     cubes = input_cubes(wind_val=wind_val, ffmc_val=ffmc_val)
-    plugin = InitialSpreadIndex()
+    plugin = InitialSpreadIndex(cycletime=DEFAULT_CYCLE_TIME)
     plugin.load_input_cubes(CubeList(cubes))
     plugin._calculate_fine_fuel_moisture()
     wind_function = plugin._calculate_wind_function()
@@ -239,7 +243,7 @@ def test_process(
             Expected ISI output value.
     """
     cubes = input_cubes(wind_val=wind_val, ffmc_val=ffmc_val)
-    result = InitialSpreadIndex().process(cubes)
+    result = InitialSpreadIndex(cycletime=DEFAULT_CYCLE_TIME).process(cubes)
 
     assert isinstance(result, Cube)
     assert result.shape == (5, 5)
@@ -259,7 +263,7 @@ def test_process_spatially_varying() -> None:
 
     cubes = input_cubes(wind_val=wind_data, ffmc_val=ffmc_data, shape=wind_data.shape)
 
-    result = InitialSpreadIndex().process(cubes)
+    result = InitialSpreadIndex(cycletime=DEFAULT_CYCLE_TIME).process(cubes)
 
     # Verify shape, type, and all values are positive
     assert result.data.shape == (3, 3)
@@ -291,7 +295,7 @@ def test_process_with_varying_wind() -> None:
 
     cubes = input_cubes(wind_val=wind_data, ffmc_val=ffmc_data, shape=wind_data.shape)
 
-    result = InitialSpreadIndex().process(cubes)
+    result = InitialSpreadIndex(cycletime=DEFAULT_CYCLE_TIME).process(cubes)
 
     # ISI should increase with wind at constant FFMC
     # Check each row
@@ -310,7 +314,7 @@ def test_process_with_varying_ffmc() -> None:
 
     cubes = input_cubes(wind_val=wind_data, ffmc_val=ffmc_data, shape=wind_data.shape)
 
-    result = InitialSpreadIndex().process(cubes)
+    result = InitialSpreadIndex(cycletime=DEFAULT_CYCLE_TIME).process(cubes)
 
     # ISI should increase with FFMC at constant wind
     # Check each row

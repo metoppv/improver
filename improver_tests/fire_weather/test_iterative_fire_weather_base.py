@@ -14,6 +14,7 @@ from iris.cube import Cube
 
 from improver.fire_weather import IterativeFireWeatherBase
 from improver_tests.fire_weather import (
+    DEFAULT_CYCLE_TIME,
     DEFAULT_START_DATE,
     DEFAULT_TIME,
     INPUT_ATTRIBUTES,
@@ -50,7 +51,7 @@ class ConcreteIterativeFireWeather(IterativeFireWeatherBase):
         return self.temperature.data + self.precipitation.data
 
 
-plugin = ConcreteIterativeFireWeather()
+plugin = ConcreteIterativeFireWeather(cycletime=DEFAULT_CYCLE_TIME)
 
 
 @pytest.fixture
@@ -122,6 +123,7 @@ def test_warning_for_metadata_inside_lag_time() -> None:
     assert cube.attributes["analysis_ready"] == "False"
 
 
+@pytest.mark.usefixtures("iris_date_precision")
 def test_no_warning_for_metadata_outside_lag_time(
     recwarn: list[warnings.WarningMessage],
 ) -> None:

@@ -14,6 +14,9 @@ from iris.cube import Cube, CubeList
 from iris.exceptions import ConstraintMismatchError
 
 from improver import BasePlugin
+from improver.metadata.forecast_times import (
+    rebadge_forecasts_as_latest_cycle,
+)
 from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.copy_metadata import CopyMetadata
 from improver.utilities.load import load_baseline_cube
@@ -70,7 +73,7 @@ class FireWeatherBase(BasePlugin):
         "initial_spread_index": "1",
         "build_up_index": "1",
         "fire_weather_index": "1",
-        "fire_severity_index": "1",
+        "daily_severity_rating": "1",
         # Disambiguated input indices (used by FFMC, DMC, DC, and ISI calculations)
         "input_ffmc": "1",
         "input_dmc": "1",
@@ -102,6 +105,15 @@ class FireWeatherBase(BasePlugin):
         "build_up_index": (0.0, 500.0),  # BUI valid range
         "fire_weather_index": (0.0, 100.0),  # FWI valid range
     }
+
+    def __init__(self, cycletime: str):
+        """
+        Args:
+            cycletime:
+                The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
+                Used to set the required forecast reference time.
+        """
+        self.cycletime = cycletime
 
     def load_input_cubes(
         self,
@@ -247,8 +259,12 @@ class FireWeatherBase(BasePlugin):
         """Creates an output cube with specified data and metadata.
 
         For classes that use precipitation data (FFMC, DMC, DC), automatically
-        updates the 'forecast_reference_time' and 'time' coordinates from the
-        precipitation cube to reflect the 24-hour accumulation period.
+        updates the 'time' coordinate from the precipitation cube to reflect
+        the 24-hour accumulation period.
+
+        The 'forecast_reference_time' is derived from the cycletime provided when
+        the class instance is constructed. The 'forecast_period' is then recalculated
+        so that it is consistent with 'time' and 'forecast_reference_time'.
 
         Args:
             data:
@@ -272,10 +288,13 @@ class FireWeatherBase(BasePlugin):
 
         # If this class uses precipitation, update time coordinates from precipitation cube
         if hasattr(self, "precipitation"):
-            copy = CopyMetadata(aux_coord=["forecast_reference_time", "time"])
+            copy = CopyMetadata(aux_coord=["time"])
             output_cube = copy.process(output_cube, self.precipitation)
-            output_cube.coord("forecast_reference_time").bounds = None
             output_cube.coord("time").bounds = None
+
+        output_cube = rebadge_forecasts_as_latest_cycle(
+            [output_cube], cycletime=self.cycletime
+        )[0]
 
         return self._set_metadata(output_cube)
 
@@ -417,7 +436,7 @@ class FireWeatherBase(BasePlugin):
             take iterative datasets as inputs, because the context of when the build up
             period was begun and whether the data is ready is important for stakeholders.
             These downstream datasets include the Initial Spread Index, the Build Up Index,
-            the Fire Weather Index and the Fire Severity Index.
+            the Fire Weather Index and the Daily Severity Rating.
 
         """
         if not self.METADATA_SOURCE_CUBE:

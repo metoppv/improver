@@ -13,7 +13,11 @@ from iris.cube import Cube, CubeList
 from improver.fire_weather.fire_weather_index import (
     FireWeatherIndex,
 )
-from improver_tests.fire_weather import INPUT_ATTRIBUTES, make_input_cubes
+from improver_tests.fire_weather import (
+    DEFAULT_CYCLE_TIME,
+    INPUT_ATTRIBUTES,
+    make_input_cubes,
+)
 
 
 def input_cubes(
@@ -84,7 +88,7 @@ def test__calculate_extrapolated_duff_moisture_function(
             Expected extrapolated DMF value.
     """
     cubes = input_cubes(isi_val=10.0, bui_val=bui_val)
-    plugin = FireWeatherIndex()
+    plugin = FireWeatherIndex(cycletime=DEFAULT_CYCLE_TIME)
     plugin.load_input_cubes(CubeList(cubes))
     dmf = plugin._calculate_extrapolated_duff_moisture_function()
 
@@ -100,7 +104,7 @@ def test__calculate_extrapolated_duff_moisture_function_no_negative(bui: float) 
             Build-Up Index value to test.
     """
     cubes = input_cubes(isi_val=10.0, bui_val=bui)
-    plugin = FireWeatherIndex()
+    plugin = FireWeatherIndex(cycletime=DEFAULT_CYCLE_TIME)
     plugin.load_input_cubes(CubeList(cubes))
     dmf = plugin._calculate_extrapolated_duff_moisture_function()
     assert np.all(dmf >= 0.0), f"Negative DMF for BUI={bui}"
@@ -143,7 +147,7 @@ def test__calculate_fwi(
             Expected FWI value.
     """
     cubes = input_cubes(isi_val=isi_val, bui_val=bui_val)
-    plugin = FireWeatherIndex()
+    plugin = FireWeatherIndex(cycletime=DEFAULT_CYCLE_TIME)
     plugin.load_input_cubes(CubeList(cubes))
     extrapolated_DMF = plugin._calculate_extrapolated_duff_moisture_function()
     fwi = plugin._calculate_fwi(extrapolated_DMF)
@@ -170,7 +174,7 @@ def test__calculate_fwi_no_negative_values(isi: float, bui: float) -> None:
             Build-Up Index value to test.
     """
     cubes = input_cubes(isi_val=isi, bui_val=bui)
-    plugin = FireWeatherIndex()
+    plugin = FireWeatherIndex(cycletime=DEFAULT_CYCLE_TIME)
     plugin.load_input_cubes(CubeList(cubes))
     extrapolated_DMF = plugin._calculate_extrapolated_duff_moisture_function()
     fwi = plugin._calculate_fwi(extrapolated_DMF)
@@ -187,7 +191,7 @@ def test__calculate_fwi_spatially_varying() -> None:
 
     cubes = input_cubes(isi_val=isi_data, bui_val=bui_data, shape=isi_data.shape)
 
-    plugin = FireWeatherIndex()
+    plugin = FireWeatherIndex(cycletime=DEFAULT_CYCLE_TIME)
     plugin.load_input_cubes(CubeList(cubes))
     extrapolated_DMF = plugin._calculate_extrapolated_duff_moisture_function()
     fwi = plugin._calculate_fwi(extrapolated_DMF)
@@ -237,7 +241,7 @@ def test_process(
             Expected FWI output value.
     """
     cubes = input_cubes(isi_val=isi_val, bui_val=bui_val)
-    result = FireWeatherIndex().process(cubes)
+    result = FireWeatherIndex(cycletime=DEFAULT_CYCLE_TIME).process(cubes)
 
     assert isinstance(result, Cube)
     assert result.shape == (5, 5)
@@ -257,7 +261,7 @@ def test_process_spatially_varying() -> None:
 
     cubes = input_cubes(isi_val=isi_data, bui_val=bui_data, shape=isi_data.shape)
 
-    result = FireWeatherIndex().process(cubes)
+    result = FireWeatherIndex(cycletime=DEFAULT_CYCLE_TIME).process(cubes)
 
     # Verify shape, type, and all values are non-negative
     assert result.data.shape == (3, 3)
@@ -284,7 +288,7 @@ def test_process_isi_zero() -> None:
 
     cubes = input_cubes(isi_val=isi_values, bui_val=bui_values, shape=isi_values.shape)
 
-    result = FireWeatherIndex().process(cubes)
+    result = FireWeatherIndex(cycletime=DEFAULT_CYCLE_TIME).process(cubes)
 
     # When ISI=0, FWI should be 0
     assert np.allclose(result.data, 0.0, atol=1e-6)
@@ -297,7 +301,7 @@ def test_process_bui_zero() -> None:
 
     cubes = input_cubes(isi_val=isi_values, bui_val=bui_values, shape=isi_values.shape)
 
-    result = FireWeatherIndex().process(cubes)
+    result = FireWeatherIndex(cycletime=DEFAULT_CYCLE_TIME).process(cubes)
 
     # All values should be positive and vary with ISI
     assert np.all(result.data > 0.0)
@@ -308,7 +312,7 @@ def test_process_bui_zero() -> None:
 def test_process_both_zero() -> None:
     """Test that when both ISI and BUI are zero, FWI equals 0."""
     cubes = input_cubes(isi_val=0.0, bui_val=0.0)
-    result = FireWeatherIndex().process(cubes)
+    result = FireWeatherIndex(cycletime=DEFAULT_CYCLE_TIME).process(cubes)
 
     assert isinstance(result, Cube)
     assert result.long_name == "fire_weather_index"
