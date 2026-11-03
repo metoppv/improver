@@ -569,7 +569,7 @@ def test_prep_features_from_config(feature_config):
         "realization": np.tile([1, 2], 3),
         "distance_to_water": np.tile([2.0, 3.0], 3),
         "blend_time": pd.Timestamp("2017-01-02 00:00:00", tz="utc"),
-        "forecast_period": 6 * 3.6e12,
+        "forecast_period": int(6 * 3.6e9),
         "forecast_reference_time": pd.Timestamp("2017-01-02 00:00:00", tz="utc"),
     }
     df = pd.DataFrame(data_dict)

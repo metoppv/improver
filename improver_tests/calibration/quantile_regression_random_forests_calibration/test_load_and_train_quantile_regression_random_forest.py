@@ -158,7 +158,7 @@ def _create_multi_site_forecast_parquet_file(tmp_path, representation=None):
             [ALTITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
         ),
         "blend_time": [pd.Timestamp("2017-01-02 00:00:00", tz="utc")] * 5,
-        "forecast_period": [6 * 3.6e12] * 5,
+        "forecast_period": [int(6 * 3.6e9)] * 5,
         "forecast_reference_time": [pd.Timestamp("2017-01-02 00:00:00", tz="utc")] * 5,
         "latitude": np.array(
             [LATITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
@@ -211,7 +211,7 @@ def _create_multi_percentile_forecast_parquet_file(tmp_path, representation=None
             [ALTITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
         ),
         "blend_time": [pd.Timestamp("2017-01-02 00:00:00", tz="utc")] * 5,
-        "forecast_period": [6 * 3.6e12] * 5,
+        "forecast_period": [int(6 * 3.6e9)] * 5,
         "forecast_reference_time": [pd.Timestamp("2017-01-02 00:00:00", tz="utc")] * 5,
         "latitude": np.array(
             [LATITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
@@ -264,8 +264,8 @@ def _create_multi_forecast_period_forecast_parquet_file(tmp_path, representation
         "blend_time": [pd.Timestamp("2017-01-02 00:00:00")] * 4,
         "forecast_period": np.repeat(
             [
-                [6 * 3.6e12],
-                [12 * 3.6e12],
+                [int(6 * 3.6e9)],
+                [int(12 * 3.6e9)],
             ],
             2,
         ),
@@ -451,10 +451,16 @@ def filter_forecast_periods(forecast_df, forecast_periods):
 
     # Convert to seconds and deduplicate
     forecast_periods_s = [fp * 3600 for fp in sorted(set(all_periods))]
+    target_periods = pd.to_timedelta(np.array(forecast_periods_s) * 1e6, unit="us")
 
-    return forecast_df[
-        forecast_df["forecast_period"].isin(np.array(forecast_periods_s) * 1e9)
-    ].reset_index(drop=True)
+    forecast_df = forecast_df.copy()
+    forecast_df["forecast_period"] = pd.to_timedelta(
+        forecast_df["forecast_period"], unit="us"
+    )
+
+    return forecast_df[forecast_df["forecast_period"].isin(target_periods)].reset_index(
+        drop=True
+    )
 
 
 def amend_expected_forecast_df(
@@ -469,10 +475,10 @@ def amend_expected_forecast_df(
     forecast_df = filter_forecast_periods(forecast_df, forecast_periods)
     for column in ["time", "forecast_reference_time", "blend_time"]:
         forecast_df[column] = pd.to_datetime(forecast_df[column], utc=True)
-        forecast_df[column] = forecast_df[column].astype("datetime64[ns, UTC]")
+        forecast_df[column] = forecast_df[column].astype("datetime64[us, UTC]")
     for column in ["forecast_period", "period"]:
-        forecast_df[column] = pd.to_timedelta(forecast_df[column], unit="ns")
-        forecast_df[column] = forecast_df[column].astype("timedelta64[ns]")
+        forecast_df[column] = pd.to_timedelta(forecast_df[column], unit="us")
+        forecast_df[column] = forecast_df[column].astype("timedelta64[us]")
 
     base_df = forecast_df[forecast_df["diagnostic"] == parquet_diagnostic_names[0]]
     for parquet_diagnostic_name, cf_name in zip(
@@ -513,7 +519,7 @@ def amend_expected_truth_df(truth_df, parquet_diagnostic_name):
     """Amend the expected truth DataFrame to match the output of the plugin."""
     truth_df = truth_df[truth_df["diagnostic"] == parquet_diagnostic_name]
     truth_df["time"] = pd.to_datetime(truth_df["time"], utc=True)
-    truth_df["time"] = truth_df["time"].astype("datetime64[ns, UTC]")
+    truth_df["time"] = truth_df["time"].astype("datetime64[us, UTC]")
     return truth_df
 
 
@@ -1276,7 +1282,7 @@ def test_unexpected_preparation(
     truth_df["time"] = pd.Series(
         [pd.Timestamp("2020-01-01 00:00:00", tz="utc")] * len(truth_df),
         index=truth_df.index,
-    ).astype("datetime64[ns, UTC]")
+    ).astype("datetime64[us, UTC]")
 
     plugin = PrepareAndTrainQRF(
         feature_config=feature_config,

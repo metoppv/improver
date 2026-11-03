@@ -712,7 +712,7 @@ def create_multi_site_forecast_parquet_file(tmp_path, include_forecast_period=Tr
 
     parquet_type = "truth"
     if include_forecast_period:
-        data_dict["forecast_period"] = [6 * 3.6e12] * 5
+        data_dict["forecast_period"] = [int(6 * 3.6e9)] * 5
         parquet_type = "forecast"
 
     data_df = pd.DataFrame(data_dict)

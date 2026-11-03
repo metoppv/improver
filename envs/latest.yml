@@ -21,6 +21,7 @@ dependencies:
   - python-stratify
   - geopandas
   - statsmodels
+  - quantile-forest
   - lightgbm
   - numba
   - pygam<0.11
@@ -29,6 +30,7 @@ dependencies:
   - tl2cgen
   - tensorflow
   - tensorflow-hub
+  - xarray
   # Development
   - astroid
   - codacy-coverage
