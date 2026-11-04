@@ -14,6 +14,7 @@ dependencies:
   - iris
   - joblib
   - numpy
+  - pandas
   - pytz
   - scipy
   - sphinx<9.0.0  # https://github.com/tox-dev/sphinx-autodoc-typehints/issues/586
@@ -24,6 +25,7 @@ dependencies:
   - quantile-forest
   - lightgbm
   - numba
+  - pyarrow
   - pygam<0.11
   - pysteps
   - treelite
@@ -37,7 +39,6 @@ dependencies:
   - filelock
   - mock
   - mypy
-  - pandas<3  # https://github.com/SciTools/iris/issues/6761
   - proj=9.7.1  # https://github.com/metoppv/improver/issues/2325
   - pytest
   - pytest-cov
