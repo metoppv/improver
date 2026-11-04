@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""RainForests calibration Plugins.
+"""Plugins to apply RainForests calibration.
 
 .. Further information is available in:
 .. include:: extended_documentation/calibration/rainforests_calibration/
@@ -29,6 +29,7 @@ from improver.calibration import (
     lightgbm_package_available,
     treelite_packages_available,
 )
+from improver.calibration.rainforest_model_config import RainForestsModelConfig
 from improver.constants import MINUTES_IN_HOUR, SECONDS_IN_MINUTE
 from improver.ensemble_copula_coupling.utilities import (
     get_bounds_of_distribution,
@@ -59,7 +60,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
 
     def __new__(
         cls,
-        model_config_dict: dict[str, dict[str, dict[str, str]]],
+        model_config_dict: RainForestsModelConfig,
         threads: int | None = None,
         bin_data: bool = False,
     ):
@@ -78,23 +79,25 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                 models. Limits the calculation of common feature values by only calculating
                 them once. Defaults to False.
 
-        Dictionary is of format::
+        RainForestsModelConfig dictionary is of format:
 
-        {
-        "24": {
-            "0.000010": {
-                "lightgbm_model": "<path_to_lightgbm_model_object>",
-                "treelite_model": "<path_to_treelite_model_object>"
-            },
-            "0.000050": {
-                "lightgbm_model": "<path_to_lightgbm_model_object>",
-                "treelite_model": "<path_to_treelite_model_object>"
-            },
-            "0.000100": {
-                "lightgbm_model": "<path_to_lightgbm_model_object>",
-                "treelite_model": "<path_to_treelite_model_object>"
-            },
-        }
+        .. code-block:: json
+
+            {
+            "24": {
+                "0.000010": {
+                    "lightgbm_model": "<path_to_lightgbm_model_object>",
+                    "treelite_model": "<path_to_treelite_model_object>"
+                },
+                "0.000050": {
+                    "lightgbm_model": "<path_to_lightgbm_model_object>",
+                    "treelite_model": "<path_to_treelite_model_object>"
+                },
+                "0.000100": {
+                    "lightgbm_model": "<path_to_lightgbm_model_object>",
+                    "treelite_model": "<path_to_treelite_model_object>"
+                },
+            }
 
         The keys specify the lead times and model threshold values, while the
         associated values are the path to the corresponding tree-model objects
@@ -205,9 +208,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         return combined_feature_splits
 
     @staticmethod
-    def check_filenames(
-        key_name: Model, model_config_dict: dict[str, dict[str, dict[str, str]]]
-    ):
+    def check_filenames(key_name: Model, model_config_dict: RainForestsModelConfig):
         """Check whether files specified by model_config_dict exist,
         and raise an error if any are missing.
 
@@ -245,7 +246,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                 )
 
     def _parse_model_config(
-        self, model_config_dict: dict[str, dict[str, dict[str, str]]]
+        self, model_config_dict: RainForestsModelConfig
     ) -> OrderedDict[np.float32, OrderedDict[np.float32, dict[str, str]]]:
         """Parse the model config dictionary, set self.lead_times and self.model_thresholds,
         and return a sorted version of the config dictionary.
@@ -284,7 +285,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
     def __new__(
         cls,
-        model_config_dict: dict[str, dict[str, dict[str, str]]],
+        model_config_dict: RainForestsModelConfig,
         threads: int | None = None,
         bin_data: bool = False,
     ):
@@ -294,7 +295,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
     def __init__(
         self,
-        model_config_dict: dict[str, dict[str, dict[str, str]]],
+        model_config_dict: RainForestsModelConfig,
         threads: int | None = None,
         bin_data: bool = False,
     ):
@@ -832,7 +833,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
 
     def __new__(
         cls,
-        model_config_dict: dict[str, dict[str, dict[str, str]]],
+        model_config_dict: RainForestsModelConfig,
         threads: int | None = None,
         bin_data: bool = False,
     ):
@@ -848,7 +849,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
 
     def __init__(
         self,
-        model_config_dict: dict[str, dict[str, dict[str, str]]],
+        model_config_dict: RainForestsModelConfig,
         threads: int | None = None,
         bin_data: bool = False,
     ):
