@@ -24,6 +24,7 @@ dependencies:
   - quantile-forest
   - lightgbm
   - numba
+  - pyarrow
   - pygam<0.11
   - pysteps
   - treelite

@@ -21,6 +21,7 @@ dependencies:
   - statsmodels
   - geopandas
   - numba
+  - pyarrow
   - pygam<0.11
   - pysteps
   - python-stratify
@@ -29,6 +30,7 @@ dependencies:
   - tensorflow-hub
   - scikit-learn
   - kmedoids
+  - xarray
   # Development
   - astroid
   - codacy-coverage
@@ -42,7 +44,6 @@ dependencies:
   - sphinx-book-theme  
   - sphinx-gallery
   - threadpoolctl
-  - xarray
   - pip
   - pip:
     - git+https://github.com/metoppv/improver_example_data.git@${BRANCH_NAME} 
