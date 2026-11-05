@@ -99,9 +99,9 @@ def _preprocess_temporal_columns(df: DataFrame) -> DataFrame:
         content of the columns with temporal dtypes are
         accessible as pandas datetime objects.
     """
-    for col in df.select_dtypes(include=["datetime64[ns, UTC]"]):
+    for col in df.select_dtypes(include=["datetimetz"]):
         df = df.astype({col: "O"})
-    for col in df.select_dtypes(include="timedelta64[ns]"):
+    for col in df.select_dtypes(include="timedelta"):
         df = df.astype({col: "O"})
     return df
 

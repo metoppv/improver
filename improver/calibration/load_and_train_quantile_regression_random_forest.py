@@ -293,22 +293,11 @@ class LoadForTrainQRF(PostProcessingPlugin):
                 merge_on,
             )
 
-        seconds_to_ns = 1e9
         forecast_df = forecast_df[
             forecast_df["forecast_period"].isin(
-                np.array(forecast_periods) * seconds_to_ns
+                pd.to_timedelta(np.array(forecast_periods), unit="s")
             )
         ].reset_index(drop=True)
-
-        # Convert df columns from ns to pandas timestamp object.
-        for column in ["time", "forecast_reference_time", "blend_time"]:
-            forecast_df[column] = pd.to_datetime(
-                forecast_df[column], unit="ns", utc=True
-            )
-            forecast_df[column] = forecast_df[column].astype("datetime64[ns, UTC]")
-        for column in ["forecast_period", "period"]:
-            forecast_df[column] = pd.to_timedelta(forecast_df[column], unit="ns")
-            forecast_df[column] = forecast_df[column].astype("timedelta64[ns]")
 
         # Load truths from parquet file filtering by diagnostic.
         filters = [[("diagnostic", "==", self.parquet_diagnostic_names[0])]]
@@ -318,9 +307,6 @@ class LoadForTrainQRF(PostProcessingPlugin):
             schema=CalibrationSchemas().TRUTH_SCHEMA,
             engine="pyarrow",
         )
-
-        truth_df["time"] = pd.to_datetime(truth_df["time"], unit="ns", utc=True)
-        truth_df["time"] = truth_df["time"].astype("datetime64[ns, UTC]")
 
         truth_df = self._strip_unique_site_id_whitespace(truth_df)
 
@@ -369,6 +355,8 @@ class LoadForTrainQRF(PostProcessingPlugin):
 
         """
         if not self.quantile_forest_installed:
+            msg = "The quantile-forest package is not installed. Skipping training of Quantile Regression Random Forests."
+            warnings.warn(msg)
             return None, None, None
         cube_inputs, parquets, _ = split_netcdf_parquet_pickle(file_paths)
 
