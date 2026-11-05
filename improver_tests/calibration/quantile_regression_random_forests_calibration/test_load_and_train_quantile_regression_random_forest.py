@@ -158,7 +158,7 @@ def _create_multi_site_forecast_parquet_file(tmp_path, representation=None):
             [ALTITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
         ),
         "blend_time": [pd.Timestamp("2017-01-02 00:00:00", tz="utc")] * 5,
-        "forecast_period": [int(6 * 3.6e9)] * 5,
+        "forecast_period": [int(6 * 3600)] * 5,
         "forecast_reference_time": [pd.Timestamp("2017-01-02 00:00:00", tz="utc")] * 5,
         "latitude": np.array(
             [LATITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
@@ -211,7 +211,7 @@ def _create_multi_percentile_forecast_parquet_file(tmp_path, representation=None
             [ALTITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
         ),
         "blend_time": [pd.Timestamp("2017-01-02 00:00:00", tz="utc")] * 5,
-        "forecast_period": [int(6 * 3.6e9)] * 5,
+        "forecast_period": [int(6 * 3600)] * 5,
         "forecast_reference_time": [pd.Timestamp("2017-01-02 00:00:00", tz="utc")] * 5,
         "latitude": np.array(
             [LATITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
@@ -262,13 +262,7 @@ def _create_multi_forecast_period_forecast_parquet_file(tmp_path, representation
             [ALTITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
         ),
         "blend_time": [pd.Timestamp("2017-01-02 00:00:00")] * 4,
-        "forecast_period": np.repeat(
-            [
-                [int(6 * 3.6e9)],
-                [int(12 * 3.6e9)],
-            ],
-            2,
-        ),
+        "forecast_period": np.repeat([[6 * 3600], [12 * 3600]], 2),
         "forecast_reference_time": [pd.Timestamp("2017-01-02 00:00:00")] * 4,
         "latitude": np.array(
             [LATITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
