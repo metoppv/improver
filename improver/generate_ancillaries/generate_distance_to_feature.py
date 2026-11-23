@@ -347,14 +347,14 @@ class DistanceToFeature(BasePlugin):
 
         return distance_results
 
-    def create_output_cube(self, site_or_grid_cube: Cube, data: List[int]) -> Cube:
+    def create_output_cube(self, input_cube: Cube, data: List[int]) -> Cube:
         """Create an output cube with the same metadata as the input cube.
 
         The units are changed to metres and, if requested, the name of the
         output cube will be changed.
 
         Args:
-           site_or_grid_cube:
+           input_cube:
                The input cube containing site / grid locations that are defined
                by latitude and longitude coordinates.
            data:
@@ -366,10 +366,10 @@ class DistanceToFeature(BasePlugin):
         """
 
         data = array(data)
-        if self.is_grid_cube(site_or_grid_cube):
+        if self.is_grid_cube(input_cube):
             data = data.reshape(self._grid_shape)
 
-        output_cube = site_or_grid_cube.copy(data=array(data))
+        output_cube = input_cube.copy(data=array(data))
         output_cube.rename(self.new_name)
         output_cube.units = "m"
 
@@ -377,21 +377,21 @@ class DistanceToFeature(BasePlugin):
 
     def process(
         self,
-        site_or_grid_cube: Cube,
+        input_cube: Cube,
         geometry: GeoDataFrame,
         exclude_outside_of: Optional[GeoDataFrame] = None,
         exclusion_buffer: Optional[float] = 10,
     ) -> Cube:
         """Generate a cube of the distance from sites / grid points in
-        site_or_grid_cube to the nearest point in geometry.
+        input_cube to the nearest point in geometry.
 
-        The latitude and longitude coordinates in the site_or_grid_cube are
+        The latitude and longitude coordinates in the input_cube are
         extracted to define the location of the sites / grid points. The sites /
         grid points and feature geometry are reprojected to the target
         projection.
 
         If requested the feature geometry will be clipped to the smallest
-        square possible such that all sites / grid points in site_or_grid_cube
+        square possible such that all sites / grid points in input_cube
         are included. A buffer distance is then added to each edge of the
         square which defines the size the feature geometry will be clipped to.
         This is useful when the feature geometry size is large and it would be
@@ -409,11 +409,11 @@ class DistanceToFeature(BasePlugin):
         that geometry.
 
         The output cube will have the same metadata as the input
-        site_or_grid_cube except the units will be changed to meters and, if
+        input_cube except the units will be changed to meters and, if
         requested, the name of the output cube will be updated.
 
         Args:
-            site_or_grid_cube:
+            input_cube:
                 The input cube containing site / grid point locations. This
                 cube must have x and y axis which contain the site / grid
                 coordinates in latitude and longitude.
@@ -440,15 +440,13 @@ class DistanceToFeature(BasePlugin):
         """
 
         # Project the geometry and site / grid point cube coordinates to the target projection.
-        site_or_grid_coords, geometry_projection = self.project_geometry(
-            geometry, site_or_grid_cube
-        )
+        input_coords, geometry_projection = self.project_geometry(geometry, input_cube)
 
         if self._do_geometry_clipping:
             # Clip the geometry to the bounds of the site / grid point coordinates with a buffer if
             # requested
-            x_bounds = self.get_clip_values(site_or_grid_coords.x, self.buffer)
-            y_bounds = self.get_clip_values(site_or_grid_coords.y, self.buffer)
+            x_bounds = self.get_clip_values(input_coords.x, self.buffer)
+            y_bounds = self.get_clip_values(input_coords.y, self.buffer)
 
             clipped_geometry = self.clip_geometry(
                 geometry_projection, x_bounds, y_bounds
@@ -457,18 +455,18 @@ class DistanceToFeature(BasePlugin):
             clipped_geometry = geometry_projection
 
         # Calculate the distance to the nearest feature in the geometry
-        distance_to_results = self.distance_to(site_or_grid_coords, clipped_geometry)
+        distance_to_results = self.distance_to(input_coords, clipped_geometry)
 
         # If exclusion geometry is provided, set distances to 0 where it is present
         if exclude_outside_of is not None:
             distance_to_results = self._apply_exclusion(
-                site_or_grid_coords,
+                input_coords,
                 distance_to_results,
                 exclude_outside_of,
                 exclusion_buffer,
             )
 
-        return self.create_output_cube(site_or_grid_cube, distance_to_results)
+        return self.create_output_cube(input_cube, distance_to_results)
 
 
 class DistanceToNearestFeature(BasePlugin):
