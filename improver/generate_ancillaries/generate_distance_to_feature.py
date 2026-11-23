@@ -7,6 +7,7 @@
 import os
 from typing import List, Optional, Tuple
 
+import numpy as np
 import pyproj
 from geopandas import GeoDataFrame, GeoSeries, clip
 from iris.cube import Cube, CubeList
@@ -218,7 +219,6 @@ class DistanceToFeature(BasePlugin):
             A tuple containing the projected site / grid locations and
             geometry.
         """
-        import numpy as np
 
         x_coords = input_cube.coord(axis="x").points
         y_coords = input_cube.coord(axis="y").points
