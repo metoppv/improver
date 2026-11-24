@@ -23,6 +23,7 @@ dependencies:
   # Additional libraries to run tests, not included in improver-feedstock
   - filelock
   - pytest
+  - python-xxhash=3.7
   - setuptools
   - sphinx-autodoc-typehints
   - sphinx-book-theme  
