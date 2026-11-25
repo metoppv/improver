@@ -158,7 +158,7 @@ def _create_multi_site_forecast_parquet_file(tmp_path, representation=None):
             [ALTITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
         ),
         "blend_time": [pd.Timestamp("2017-01-02 00:00:00", tz="utc")] * 5,
-        "forecast_period": [6 * 3.6e12] * 5,
+        "forecast_period": [int(6 * 3600)] * 5,
         "forecast_reference_time": [pd.Timestamp("2017-01-02 00:00:00", tz="utc")] * 5,
         "latitude": np.array(
             [LATITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
@@ -211,7 +211,7 @@ def _create_multi_percentile_forecast_parquet_file(tmp_path, representation=None
             [ALTITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
         ),
         "blend_time": [pd.Timestamp("2017-01-02 00:00:00", tz="utc")] * 5,
-        "forecast_period": [6 * 3.6e12] * 5,
+        "forecast_period": [int(6 * 3600)] * 5,
         "forecast_reference_time": [pd.Timestamp("2017-01-02 00:00:00", tz="utc")] * 5,
         "latitude": np.array(
             [LATITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
@@ -262,13 +262,7 @@ def _create_multi_forecast_period_forecast_parquet_file(tmp_path, representation
             [ALTITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
         ),
         "blend_time": [pd.Timestamp("2017-01-02 00:00:00")] * 4,
-        "forecast_period": np.repeat(
-            [
-                [6 * 3.6e12],
-                [12 * 3.6e12],
-            ],
-            2,
-        ),
+        "forecast_period": np.repeat([[6 * 3600], [12 * 3600]], 2),
         "forecast_reference_time": [pd.Timestamp("2017-01-02 00:00:00")] * 4,
         "latitude": np.array(
             [LATITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
@@ -449,12 +443,18 @@ def filter_forecast_periods(forecast_df, forecast_periods):
         else:
             all_periods.append(int(token))
 
-    # Convert to seconds and deduplicate
+    # Convert to seconds and deduplicate.
     forecast_periods_s = [fp * 3600 for fp in sorted(set(all_periods))]
+    target_periods = pd.to_timedelta(np.array(forecast_periods_s), unit="s")
 
-    return forecast_df[
-        forecast_df["forecast_period"].isin(np.array(forecast_periods_s) * 1e9)
-    ].reset_index(drop=True)
+    forecast_df = forecast_df.copy()
+    forecast_df["forecast_period"] = pd.to_timedelta(
+        forecast_df["forecast_period"], unit="s"
+    )
+
+    return forecast_df[forecast_df["forecast_period"].isin(target_periods)].reset_index(
+        drop=True
+    )
 
 
 def amend_expected_forecast_df(
@@ -468,9 +468,11 @@ def amend_expected_forecast_df(
     """Amend the expected forecast DataFrame to match the output of the plugin."""
     forecast_df = filter_forecast_periods(forecast_df, forecast_periods)
     for column in ["time", "forecast_reference_time", "blend_time"]:
-        forecast_df[column] = pd.to_datetime(forecast_df[column], unit="ns", utc=True)
+        forecast_df[column] = pd.to_datetime(forecast_df[column], utc=True)
+        forecast_df[column] = forecast_df[column].astype("datetime64[s, UTC]")
     for column in ["forecast_period", "period"]:
-        forecast_df[column] = pd.to_timedelta(forecast_df[column], unit="ns")
+        forecast_df[column] = pd.to_timedelta(forecast_df[column], unit="s")
+        forecast_df[column] = forecast_df[column].astype("timedelta64[s]")
 
     base_df = forecast_df[forecast_df["diagnostic"] == parquet_diagnostic_names[0]]
     for parquet_diagnostic_name, cf_name in zip(
@@ -510,7 +512,8 @@ def amend_expected_forecast_df(
 def amend_expected_truth_df(truth_df, parquet_diagnostic_name):
     """Amend the expected truth DataFrame to match the output of the plugin."""
     truth_df = truth_df[truth_df["diagnostic"] == parquet_diagnostic_name]
-    truth_df["time"] = pd.to_datetime(truth_df["time"], unit="ns", utc=True)
+    truth_df["time"] = pd.to_datetime(truth_df["time"], utc=True)
+    truth_df["time"] = truth_df["time"].astype("datetime64[s, UTC]")
     return truth_df
 
 
@@ -1343,7 +1346,10 @@ def test_unexpected_preparation(
     _, forecast_df, _ = _create_multi_site_forecast_parquet_file(tmp_path)
     _, truth_df = _create_multi_site_truth_parquet_file(tmp_path)
 
-    truth_df.loc[:, "time"] = pd.Timestamp("2020-01-01 00:00:00", tz="utc")
+    truth_df["time"] = pd.Series(
+        [pd.Timestamp("2020-01-01 00:00:00", tz="utc")] * len(truth_df),
+        index=truth_df.index,
+    ).astype("datetime64[s, UTC]")
 
     plugin = PrepareAndTrainQRF(
         feature_config=feature_config,
@@ -1357,3 +1363,35 @@ def test_unexpected_preparation(
     ):
         result = plugin(forecast_df, truth_df)
     assert result == (None, None, None)
+
+
+def test_quantile_forest_not_installed(monkeypatch):
+    """Test that a warning is raised if the quantile_forest package is not installed."""
+    feature_config = {"air_temperature": ["mean", "std", "altitude"]}
+    parquet_diagnostic_names = ["temperature_at_screen_level"]
+    cf_names = ["air_temperature"]
+    forecast_periods = "6:18:6"
+    cycletime = "20200101T0000Z"
+    training_length = 7
+    experiments = ["latestblend"]
+
+    monkeypatch.setattr(
+        "improver.calibration.load_and_train_quantile_regression_random_forest.quantile_forest_package_available",
+        lambda: False,
+    )
+
+    plugin = LoadForTrainQRF(
+        feature_config=feature_config,
+        parquet_diagnostic_names=parquet_diagnostic_names,
+        cf_names=cf_names,
+        forecast_periods=forecast_periods,
+        cycletime=cycletime,
+        training_length=training_length,
+        experiments=experiments,
+    )
+
+    msg = "The quantile-forest package is not installed. Skipping training of Quantile Regression Random Forests."
+    with pytest.warns(UserWarning, match=msg):
+        result = plugin([])
+    assert result == (None, None, None)
+    assert plugin.quantile_forest_installed is False
