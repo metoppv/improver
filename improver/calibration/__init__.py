@@ -39,7 +39,7 @@ class CalibrationSchemas:
                 ("forecast", pa.float32()),
                 ("altitude", pa.float32()),
                 ("blend_time", pa.timestamp("s", "utc")),
-                ("forecast_period", pa.int64()),
+                ("forecast_period", pa.duration("s")),
                 ("forecast_reference_time", pa.timestamp("s", "utc")),
                 ("latitude", pa.float32()),
                 ("longitude", pa.float32()),
@@ -49,7 +49,7 @@ class CalibrationSchemas:
                 ("cf_name", pa.string()),
                 ("units", pa.string()),
                 ("experiment", pa.string()),
-                ("period", pa.int64()),
+                ("period", pa.duration("s")),
                 ("height", pa.float32()),
                 ("diagnostic", pa.string()),
             ]
