@@ -7,12 +7,11 @@
 import os
 from typing import List, Optional, Tuple
 
-import numpy as np
 import pyproj
 from geopandas import GeoDataFrame, GeoSeries, clip
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
-from numpy import array, min, round
+from numpy import array, meshgrid, min, round, stack
 from shapely.geometry import Point
 
 from improver import BasePlugin
@@ -230,7 +229,7 @@ class DistanceToFeature(BasePlugin):
             points = GeoSeries(points_list, crs=4326)
         # Otherwise project the grid cube into the EPSG:4326 coordinate system
         else:
-            x_grid, y_grid = np.meshgrid(x_coords, y_coords, indexing="ij")
+            x_grid, y_grid = meshgrid(x_coords, y_coords, indexing="ij")
             # keep track of the shape for packaging the output ancillary into the same shape cube as the input
             self._grid_shape = y_grid.shape
             points_list = [Point(x, y) for x, y in zip(x_grid.ravel(), y_grid.ravel())]
@@ -522,7 +521,6 @@ class DistanceToNearestFeature(BasePlugin):
             ValueError: If the cubes in the input CubeList have unmatched coordinates
                 (other than those specified in ignored_coords_for_validation).
         """
-        import numpy as np
 
         # Validate that the input CubeList is not empty
         if not distance_to_features:
@@ -536,7 +534,7 @@ class DistanceToNearestFeature(BasePlugin):
             raise ValueError(msg)
 
         # Calculate the minimum distance across all features
-        distances_to_features = np.stack([cube.data for cube in distance_to_features])
+        distances_to_features = stack([cube.data for cube in distance_to_features])
         min_distance = distances_to_features.min(axis=0)
 
         # Create a new cube for the distance to closest feature using the first cube in
