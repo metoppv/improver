@@ -8,6 +8,7 @@ dependencies:
   - cartopy
   - clize
   - iris=3.12
+  - python-xxhash=3.7  # https://github.com/metoppv/improver/pull/2466 (remove pin when using iris >= 3.16.1)
   - joblib
   - numpy=2.2
   - pandas>=3
@@ -25,7 +26,6 @@ dependencies:
   - pygam<0.11
   - pysteps
   - python-stratify
-  - python-xxhash=3.7  # https://github.com/metoppv/improver/pull/2466 (remove pin when using iris >= 3.16.1)
   - quantile-forest
   - tensorflow
   - tensorflow-hub
