@@ -23,7 +23,7 @@ dependencies:
   # Additional libraries to run tests, not included in improver-feedstock
   - filelock
   - pytest
-  - python-xxhash=3.7
+  - python-xxhash=3.7  # https://github.com/metoppv/improver/pull/2466 (remove pin when using iris >= 3.16.1)
   - setuptools
   - sphinx-autodoc-typehints
   - sphinx-book-theme  
