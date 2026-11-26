@@ -569,7 +569,7 @@ def test_prep_features_from_config(feature_config):
         "realization": np.tile([1, 2], 3),
         "distance_to_water": np.tile([2.0, 3.0], 3),
         "blend_time": pd.Timestamp("2017-01-02 00:00:00", tz="utc"),
-        "forecast_period": 6 * 3.6e12,
+        "forecast_period": int(6 * 3600),
         "forecast_reference_time": pd.Timestamp("2017-01-02 00:00:00", tz="utc"),
     }
     df = pd.DataFrame(data_dict)
@@ -885,7 +885,7 @@ def test_train_qrf_many_nans():
     "quantiles,transformation,pre_transform_addition,include_static,expected",
     [
         ([0.5], None, 0, False, [5, 4.9]),  # One quantile
-        ([0.1, 0.5, 0.9], None, 0, False, [[7.25, 8.25, 9.25], [6.35, 7.75, 9.14]]),  # noqa Multiple quantiles
+        ([0.1, 0.5, 0.9], None, 0, False, [[9.14, 9.3, 9.46], [6.35, 7.75, 9.15]]),  # noqa Multiple quantiles
         ([0.1, 0.5, 0.9], "log", 10, False, [[4.48, 5.67, 6.96], [4.48, 5.67, 6.96]]),  # noqa Log transformation
         (
             [0.1, 0.5, 0.9],
@@ -908,7 +908,7 @@ def test_train_qrf_many_nans():
             False,
             [[4.49, 5.7, 6.97], [4.49, 5.7, 6.97]],
         ),  # Cube root transformation
-        ([0.1, 0.5, 0.9], None, 0, True, [[7.25, 8.25, 9.25], [6.35, 7.75, 9.15]]),  # noqa Include static data
+        ([0.1, 0.5, 0.9], None, 0, True, [[9.14, 9.3, 9.46], [6.35, 7.75, 9.15]]),  # noqa Include static data
     ],
 )
 def test_apply_qrf(

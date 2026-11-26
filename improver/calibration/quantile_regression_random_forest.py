@@ -633,7 +633,7 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         del forecast_df
 
         calibrated_forecast = qrf_model.predict(
-            feature_values, quantiles=self.quantiles
+            feature_values, quantiles=self.quantiles, interpolation="linear"
         )
         calibrated_forecast = self._reverse_transformation(calibrated_forecast)
         calibrated_forecast = calibrated_forecast.astype(np.float32, copy=False)
