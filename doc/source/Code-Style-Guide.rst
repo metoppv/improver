@@ -235,6 +235,43 @@ is standardised:
 ``process`` methods should call these on their data inputs rather than
 implementing bespoke handling.
 
+For example, this application selects two required inputs by name, regardless
+of the order in which they are supplied:
+
+.. code:: python
+
+   from typing import Union
+
+   from iris.cube import Cube, CubeList
+
+   from improver import BasePlugin
+   from improver.utilities.common_input_handle import as_cubelist
+
+
+   class SelectAtmosphericInputs(BasePlugin):
+       """Select temperature and pressure cubes using their metadata."""
+
+       def __init__(self, ...) -> None:
+           ...
+
+       def process(self, *cubes: Union[Cube, CubeList]) -> CubeList:
+           """Return exactly one cube for each required diagnostic."""
+           cubes = as_cubelist(*cubes)
+           air_temp, surface_temp = cubes.extract(
+               ["air_temperature", "surface_air_pressure"], strict=True
+           )
+           result = process_cubes(air_temp, surface_temp)
+           return result
+
+
+Here, ``temperature_cube`` and ``pressure_cube`` are existing cubes named
+``air_temperature`` and ``surface_air_pressure`` respectively. The
+``*cubes: Union[Cube, CubeList]`` annotation describes each positional input;
+``as_cubelist`` normalises these inputs before ``extract`` identifies them
+by cube name.  Using ``strict=True`` raises an error if a required diagnostic is
+missing or matches more than one cube, rather than silently accepting
+incomplete or ambiguous inputs.
+
 User interfaces and ``improver.api``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -706,7 +743,7 @@ validating that the behaviour is as expected. In IMPROVER, GitHub
 Actions are used to run a series of tests on each pull request to ensure
 that the pull request meets the expected standards. Tests can be run
 from the top-level directory using bin/improver-tests or using
-`pytest <https://docs.pytest.org/en/latest/>`_. Further instructions on 
+`pytest <https://docs.pytest.org/en/latest/>`_. Further instructions on
 running these tests can be found in :doc:`Running-at-your-site`.
 
 Unit Testing
