@@ -197,8 +197,61 @@ comes in.
    wibble = np.array([wobble, wubble], dtype=np.float32)
    fred = np.float32(garply)
 
+Applications
+------------
+
+IMPROVER science code is provided as *applications* (historically referred
+to as "plugins"). The following standards apply when creating or working on
+an application.
+
+Keyword arguments vs positional arguments
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Configuration of an application (e.g. thresholds, methods, options) is
+  provided as keyword arguments to the class ``__init__``.
+* The data to be operated on is provided as positional arguments to the
+  ``process`` method.
+
+Input order agnostic applications
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As applications are worked on, we want to move towards applications that are
+agnostic to the order of their inputs. Metadata (e.g. the cube name, or
+coordinates and attributes) should be used to identify which cube is which,
+rather than relying on the position of a cube in the arguments or a list.
+
+Standardised input handling
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Use the tools in ``improver/utilities/common_input_handle.py`` so that
+validation and coercion of suitable input types in the application interface
+is standardised:
+
+* ``as_cube`` returns a single cube from a cube or cubelist (merging where
+  necessary).
+* ``as_cubelist`` flattens one or more cubes and/or cubelists into a single
+  ``CubeList``.
+
+``process`` methods should call these on their data inputs rather than
+implementing bespoke handling.
+
+User interfaces and ``improver.api``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* ``improver/cli`` contains the old, legacy, clize based user interface for
+  IMPROVER.
+* ``improver.api`` provides access to all science applications directly via
+  a single flat namespace. It protects users from changes to the IMPROVER
+  package structure.
+* When working with an application, check that it is accessible from
+  ``improver.api``. If it is not, add it to the ``PROCESSING_MODULES``
+  lookup in ``improver/api/__init__.py`` (alphabetically sorted).
+
 Plugins
 -------
+
+The guidance below uses the historical term "plugin" and applies equally to
+applications.
 
 Docstrings
 ~~~~~~~~~~
