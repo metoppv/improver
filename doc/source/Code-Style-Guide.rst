@@ -197,8 +197,98 @@ comes in.
    wibble = np.array([wobble, wubble], dtype=np.float32)
    fred = np.float32(garply)
 
+Applications
+------------
+
+IMPROVER science code is provided as *applications* (historically referred
+to as "plugins"). The following standards apply when creating or working on
+an application.
+
+Keyword arguments vs positional arguments
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Configuration of an application (e.g. thresholds, methods, options) is
+  provided as keyword arguments to the class ``__init__``.
+* The data to be operated on is provided as positional arguments to the
+  ``process`` method.
+
+Input order agnostic applications
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As applications are worked on, we want to move towards applications that are
+agnostic to the order of their inputs. Metadata (e.g. the cube name, or
+coordinates and attributes) should be used to identify which cube is which,
+rather than relying on the position of a cube in the arguments or a list.
+
+Standardised input handling
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Use the tools in ``improver/utilities/common_input_handle.py`` so that
+validation and coercion of suitable input types in the application interface
+is standardised:
+
+* ``as_cube`` returns a single cube from a cube or cubelist (merging where
+  necessary).
+* ``as_cubelist`` flattens one or more cubes and/or cubelists into a single
+  ``CubeList``.
+
+``process`` methods should call these on their data inputs rather than
+implementing bespoke handling.
+
+For example, this application selects two required inputs by name, regardless
+of the order in which they are supplied:
+
+.. code:: python
+
+   from typing import Union
+
+   from iris.cube import Cube, CubeList
+
+   from improver import BasePlugin
+   from improver.utilities.common_input_handle import as_cubelist
+
+
+   class SelectAtmosphericInputs(BasePlugin):
+       """Select temperature and pressure cubes using their metadata."""
+
+       def __init__(self, ...) -> None:
+           ...
+
+       def process(self, *cubes: Union[Cube, CubeList]) -> CubeList:
+           """Return exactly one cube for each required diagnostic."""
+           cubes = as_cubelist(*cubes)
+           air_temp, surface_temp = cubes.extract(
+               ["air_temperature", "surface_air_pressure"], strict=True
+           )
+           result = process_cubes(air_temp, surface_temp)
+           return result
+
+
+Here, ``temperature_cube`` and ``pressure_cube`` are existing cubes named
+``air_temperature`` and ``surface_air_pressure`` respectively. The
+``*cubes: Union[Cube, CubeList]`` annotation describes each positional input;
+``as_cubelist`` normalises these inputs before ``extract`` identifies them
+by cube name.  Using ``strict=True`` raises an error if a required diagnostic is
+missing or matches more than one cube, rather than silently accepting
+incomplete or ambiguous inputs.
+
+User interfaces and ``improver.api``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* ``improver/cli`` contains the old, legacy, clize based user interface for
+  IMPROVER.
+* ``improver.api`` provides access to all science applications directly via
+  a single flat namespace. It protects users from changes to the IMPROVER
+  package structure.
+* When working with an application, check that it is accessible from
+  ``improver.api``. If it is not, add it to the ``PROCESSING_MODULES``
+  lookup in ``improver/api/__init__.py`` (alphabetically sorted).
+
 Plugins
 -------
+
+The guidance below uses the historical term "plugin" and applies equally to
+applications.
 
 Docstrings
 ~~~~~~~~~~
@@ -653,7 +743,7 @@ validating that the behaviour is as expected. In IMPROVER, GitHub
 Actions are used to run a series of tests on each pull request to ensure
 that the pull request meets the expected standards. Tests can be run
 from the top-level directory using bin/improver-tests or using
-`pytest <https://docs.pytest.org/en/latest/>`_. Further instructions on 
+`pytest <https://docs.pytest.org/en/latest/>`_. Further instructions on
 running these tests can be found in :doc:`Running-at-your-site`.
 
 Unit Testing
