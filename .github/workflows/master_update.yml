@@ -7,6 +7,37 @@ on:
 # on: [pull_request]  # uncomment for testing purposes
 
 jobs:
+  env-cache-generation:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        env: [environment_a, environment_b, conda-forge]
+
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 1
+
+    - name: Substitute branch name in environment files
+      run: |
+        sed -i "s/\${BRANCH_NAME}/master/g" envs/${{ matrix.env }}.yml
+      shell: bash
+
+    - name: Environment creation
+      uses: mamba-org/setup-micromamba@v3
+      with:
+        environment-file: envs/${{ matrix.env }}.yml
+        init-shell: bash
+        cache-environment: true
+
+    - name: Environment info
+      run: |
+        micromamba info
+        micromamba list
+      shell: bash -el {0}
+
   Test-Coverage:
     runs-on: ubuntu-latest
     steps:
