@@ -20,6 +20,11 @@ jobs:
       with:
         fetch-depth: 1
 
+    - name: Substitute branch name in environment files
+      run: |
+        sed -i "s/\${BRANCH_NAME}/master/g" envs/${{ matrix.env }}.yml
+      shell: bash
+
     - name: Environment creation
       uses: mamba-org/setup-micromamba@v3
       with:
